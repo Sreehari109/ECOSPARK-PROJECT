@@ -1,0 +1,6 @@
+{
+  "name": "EcoSpark – Smart Grid Demand-Side Management Platform",
+  "description": "Intelligent energy conservation and electrical grid telemetry platform: real-time demand-side monitoring, dynamic Time-of-Use tariff optimization, interactive appliance energy auditing, and gamified peak reduction protocols.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

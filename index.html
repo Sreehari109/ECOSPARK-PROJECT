@@ -1,0 +1,2183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EcoSpark – Smart Grid Demand-Side Management Platform</title>
+    <meta name="description" content="Intelligent energy conservation and electrical grid telemetry platform: real-time demand-side monitoring, dynamic Time-of-Use tariff optimization, interactive appliance energy auditing, and gamified peak reduction protocols." />
+    <meta property="og:title" content="EcoSpark – Smart Grid Demand-Side Management Platform" />
+    <meta property="og:description" content="Intelligent energy conservation and electrical grid telemetry platform: real-time demand-side monitoring, dynamic Time-of-Use tariff optimization, interactive appliance energy auditing, and gamified peak reduction protocols." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts: Plus Jakarta Sans & Inter & JetBrains Mono (Formal, Modern, Highly Legible) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Suppress benign WebSocket preview warnings -->
+    <script>
+      window.addEventListener('unhandledrejection', function(e) {
+        if (e && e.reason && (String(e.reason).includes('WebSocket') || String(e.reason.message || '').includes('WebSocket'))) {
+          e.preventDefault();
+        }
+      });
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- Main App Container -->
+    <div class="app-container">
+      
+      <!-- STICKY MODERN NAVBAR -->
+      <header class="navbar">
+        <div class="nav-content">
+          <!-- Brand / Logo with Bespoke Cleantech Vector Mark -->
+          <a href="#solution" class="brand-link" data-view-target="solution-view" id="nav-brand-logo">
+            <div class="brand-logo-icon" aria-label="EcoSpark">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.18)"/>
+                <path d="M2 21c0-3 1.85-5.36 5.08-6 1.42-.28 3.42-1.28 4.92-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M12.5 3.5L10 8.5H14.5L12 12.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>EcoSpark <span class="brand-badge">Smart Grid DSM</span></span>
+          </a>
+
+          <!-- Live Status -->
+          <div class="system-status" id="system-status-indicator" title="Grid Frequency & Microgrid Telemetry: Synchronized">
+            <span class="status-dot"></span>
+            <span>Grid Telemetry • 50.00 Hz</span>
+          </div>
+
+          <!-- Navigation Links (4 Core Functional Screens) -->
+          <ul class="nav-links" id="primary-nav-links">
+            <li>
+              <button class="nav-link-btn active" data-view-target="solution-view" id="nav-btn-solution">
+                <i class="fa-solid fa-microchip"></i> Engineering Solution
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="dashboard-view" id="nav-btn-dashboard">
+                <i class="fa-solid fa-chart-line"></i> Grid Telemetry
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="scanner-view" id="nav-btn-scanner">
+                <i class="fa-solid fa-calculator"></i> Appliance Calculator
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="references-view" id="nav-btn-references">
+                <i class="fa-solid fa-book-bookmark"></i> References
+              </button>
+            </li>
+          </ul>
+
+          <!-- Nav Right Actions -->
+          <div class="nav-actions">
+            <!-- Theme Toggle -->
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-toggle-btn" id="mobile-toggle-btn" aria-label="Open mobile menu">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Mobile Navigation Drawer -->
+      <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+        <button class="nav-link-btn active" data-view-target="solution-view"><i class="fa-solid fa-microchip"></i> Engineering Solution</button>
+        <button class="nav-link-btn" data-view-target="dashboard-view"><i class="fa-solid fa-chart-line"></i> Grid Telemetry</button>
+        <button class="nav-link-btn" data-view-target="scanner-view"><i class="fa-solid fa-calculator"></i> Appliance Calculator</button>
+        <button class="nav-link-btn" data-view-target="references-view"><i class="fa-solid fa-book-bookmark"></i> References</button>
+      </div>
+
+      <!-- MAIN APP VIEWS CONTAINER -->
+      <main class="main-content" id="main-content-view">
+        
+        <!-- ================================================================
+             VIEW 0: ENGINEERING / IT SOLUTION & ENVIRONMENTAL PROBLEM
+             ================================================================ -->
+        <section class="view-section active" id="solution-view">
+          
+          <!-- Engineering Solution Hero -->
+          <div class="command-hero solution-hero">
+            <div class="command-hero-badge">
+              <span class="live-pulse-dot"></span>
+              <span>Engineering & IT Solution • System Architecture</span>
+            </div>
+            <h1 class="command-hero-title">
+              Smart-Grid Demand-Side Management <span class="text-accent">& Decarbonization Platform</span>
+            </h1>
+            <p class="command-hero-subtitle">
+              An engineering-driven telemetry and behavioral demand response system designed to solve peak electrical grid stress, eliminate carbon-intensive peaker plant activations, and provide end-users with precise appliance energy auditing.
+            </p>
+
+            <div class="command-cta-row">
+              <button class="btn-clean btn-primary-clean btn-lg" onclick="switchView('scanner-view')">
+                <i class="fa-solid fa-calculator"></i> Open Appliance Energy Audit
+              </button>
+              <button class="btn-clean btn-secondary-clean btn-lg" onclick="switchView('dashboard-view')">
+                <i class="fa-solid fa-chart-line"></i> View Real-Time Grid Telemetry
+              </button>
+              <button class="btn-clean btn-secondary-clean btn-lg" onclick="switchView('references-view')">
+                <i class="fa-solid fa-book-bookmark"></i> Scientific References
+              </button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: ENVIRONMENTAL PROBLEM STATEMENT -->
+          <div class="institutional-card" style="margin-bottom: 2rem;">
+            <div class="card-section-header">
+              <div>
+                <span class="section-tag">Environmental Engineering Challenge</span>
+                <h3 class="card-section-title">The Environmental Problem: Peak Load & Unmonitored Electricity Waste</h3>
+              </div>
+              <span class="telemetry-badge-live" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.25);">Critical Challenge</span>
+            </div>
+            <p class="card-section-intro">
+              Modern power distribution grids face acute operational vulnerabilities and severe carbon penalties due to synchronous demand surges and lack of granular end-user consumption feedback.
+            </p>
+
+            <div class="waste-grid-four">
+              <div class="waste-item">
+                <div class="waste-item-header">
+                  <span class="waste-icon" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-smog"></i></span>
+                  <h4>Peaker Plant Emissions</h4>
+                </div>
+                <p>During evening peak hours (18:00–22:00), grids must fire up inefficient fossil-fuel peaker plants (gas/coal), emitting <strong>2.4x to 3.1x more CO₂ per kWh</strong> than baseload generation.</p>
+                <span class="waste-stat-note" style="color: #ef4444;">Up to 1.15 kg CO₂ / kWh during peaks</span>
+              </div>
+
+              <div class="waste-item">
+                <div class="waste-item-header">
+                  <span class="waste-icon" style="color: var(--color-amber); background: var(--color-amber-light);"><i class="fa-solid fa-plug-circle-exclamation"></i></span>
+                  <h4>Vampire & Standby Draw</h4>
+                </div>
+                <p>Idle consumer electronics, dormant AC systems, chargers, and workstation peripherals draw continuous "vampire" standby power 24/7 without delivering useful work.</p>
+                <span class="waste-stat-note">10%–15% of annual power bills</span>
+              </div>
+
+              <div class="waste-item">
+                <div class="waste-item-header">
+                  <span class="waste-icon" style="color: var(--color-secondary); background: var(--color-secondary-light);"><i class="fa-solid fa-money-bill-trend-up"></i></span>
+                  <h4>Punitive Surge Tariffs</h4>
+                </div>
+                <p>Utilities impose +35% to +50% Time-of-Use (ToU) surcharges during peak hours. Operating unshifted heavy appliances creates severe and avoidable financial penalties.</p>
+                <span class="waste-stat-note">+50% cost penalty in evening hours</span>
+              </div>
+
+              <div class="waste-item">
+                <div class="waste-item-header">
+                  <span class="waste-icon" style="color: var(--color-purple); background: var(--color-purple-light);"><i class="fa-solid fa-tower-broadcast"></i></span>
+                  <h4>Grid Instability & Loss</h4>
+                </div>
+                <p>Simultaneous peak spikes cause transmission line thermal stress, phase imbalance, and grid frequency dips below the 50.0 Hz statutory stability threshold.</p>
+                <span class="waste-stat-note">Risk of curtailment & brownouts</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: TARGET USER PROFILES -->
+          <div class="institutional-card" style="margin-bottom: 2rem;">
+            <div class="card-section-header">
+              <div>
+                <span class="section-tag">Human-Centered Engineering</span>
+                <h3 class="card-section-title">Target Users & Stakeholder Ecosystem</h3>
+              </div>
+              <span class="section-tag" style="background: var(--color-primary-light); color: var(--color-primary);">4 Primary Personas</span>
+            </div>
+            <p class="card-section-intro">
+              The EcoSpark platform is tailored to empower distinct user cohorts across residential, commercial, and microgrid sectors with actionable intelligence.
+            </p>
+
+            <div class="target-users-grid">
+              <div class="target-user-card">
+                <div class="user-card-top">
+                  <div class="user-card-icon" style="background: var(--color-primary-light); color: var(--color-primary);">
+                    <i class="fa-solid fa-house-chimney-user"></i>
+                  </div>
+                  <div>
+                    <h4 class="user-card-title">Residential Households</h4>
+                    <span class="user-card-role">Home Energy Consumers</span>
+                  </div>
+                </div>
+                <p class="user-card-desc">
+                  Families and homeowners seeking clarity on which appliances consume the most electricity, how to read Time-of-Use tariffs, and simple schedules to reduce monthly power bills.
+                </p>
+                <div class="user-card-benefits">
+                  <span><i class="fa-solid fa-circle-check"></i> Appliance-by-appliance wattage & cost tracking</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Shift heavy laundry & water heating away from peak rates</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Save up to 50% on utility peak surcharges</span>
+                </div>
+              </div>
+
+              <div class="target-user-card">
+                <div class="user-card-top">
+                  <div class="user-card-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                    <i class="fa-solid fa-building-user"></i>
+                  </div>
+                  <div>
+                    <h4 class="user-card-title">Apartment Tenants & Students</h4>
+                    <span class="user-card-role">Renters & Shared Living</span>
+                  </div>
+                </div>
+                <p class="user-card-desc">
+                  Apartment dwellers managing fixed utility budgets who need instant guidance on the best hours to run appliances and practical ways to eliminate phantom standby electricity waste.
+                </p>
+                <div class="user-card-benefits">
+                  <span><i class="fa-solid fa-circle-check"></i> 100% web-based; zero hardware installation required</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Instant monthly electricity bill estimation</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Eliminate continuous vampire electronics draw</span>
+                </div>
+              </div>
+
+              <div class="target-user-card">
+                <div class="user-card-top">
+                  <div class="user-card-icon" style="background: var(--color-amber-light); color: var(--color-amber);">
+                    <i class="fa-solid fa-solar-panel"></i>
+                  </div>
+                  <div>
+                    <h4 class="user-card-title">Rooftop Solar Homes</h4>
+                    <span class="user-card-role">Clean Self-Generation</span>
+                  </div>
+                </div>
+                <p class="user-card-desc">
+                  Premises equipped with rooftop solar PV seeking to run heavy appliances during peak solar sunshine (11:00–16:00), maximizing free self-consumption and battery lifespan.
+                </p>
+                <div class="user-card-benefits">
+                  <span><i class="fa-solid fa-circle-check"></i> Synchronize heavy loads with midday sunshine</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Maximize free self-generated solar electricity</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Preserve battery storage for night hours</span>
+                </div>
+              </div>
+
+              <div class="target-user-card">
+                <div class="user-card-top">
+                  <div class="user-card-icon" style="background: var(--color-purple-light); color: var(--color-purple);">
+                    <i class="fa-solid fa-network-wired"></i>
+                  </div>
+                  <div>
+                    <h4 class="user-card-title">Community & Grid Planners</h4>
+                    <span class="user-card-role">Demand-Side Energy Management</span>
+                  </div>
+                </div>
+                <p class="user-card-desc">
+                  Communities and microgrid managers working to shave peak megawatt demand, stabilize electrical grid frequency, and prevent dirty coal peaker plants from firing up.
+                </p>
+                <div class="user-card-benefits">
+                  <span><i class="fa-solid fa-circle-check"></i> Collective peak load shaving</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Stabilize grid frequency at statutory 50.0 Hz</span>
+                  <span><i class="fa-solid fa-circle-check"></i> Directly displace carbon-heavy thermal generation</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: THE SELECTED ENGINEERING / IT SOLUTION -->
+          <div class="institutional-card" style="margin-bottom: 2rem;">
+            <div class="card-section-header">
+              <div>
+                <span class="section-tag">Engineering & IT Architecture</span>
+                <h3 class="card-section-title">The Selected IT Solution: EcoSpark Demand-Side Management</h3>
+              </div>
+              <span class="telemetry-badge-live">Hardware + Software Stack</span>
+            </div>
+            <p class="card-section-intro">
+              EcoSpark addresses electrical grid stress and household energy waste through three connected pillars: real-time Time-of-Use tariff tracking, granular appliance consumption auditing, and intuitive load-shifting feedback.
+            </p>
+
+            <!-- 3 Core Solution Pillars -->
+            <div class="solution-flow-grid">
+              <div class="solution-flow-card">
+                <span class="solution-flow-step">Pillar 01</span>
+                <div style="font-size: 1.6rem; color: var(--color-primary); margin-bottom: 0.5rem;"><i class="fa-solid fa-clock"></i></div>
+                <h4>Real-Time Tariff Schedule</h4>
+                <p>Monitors electricity pricing windows: <strong>Night Off-Peak (-20% discount)</strong>, <strong>Solar Daytime (standard rate)</strong>, and <strong>Evening Peak (+50% surge)</strong>, alerting users when it's cheapest and cleanest to consume power.</p>
+              </div>
+
+              <div class="solution-flow-card">
+                <span class="solution-flow-step">Pillar 02</span>
+                <div style="font-size: 1.6rem; color: var(--color-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-calculator"></i></div>
+                <h4>Appliance Energy Calculator</h4>
+                <p>Translates complex technical wattage and runtime hours into intuitive monthly units (kWh), projected electricity costs (₹), and CEA carbon footprints (0.82 kg CO₂/kWh) for all home devices.</p>
+              </div>
+
+              <div class="solution-flow-card">
+                <span class="solution-flow-step">Pillar 03</span>
+                <div style="font-size: 1.6rem; color: var(--color-amber); margin-bottom: 0.5rem;"><i class="fa-solid fa-bolt"></i></div>
+                <h4>Peak Load-Shifting Engine</h4>
+                <p>Demonstrates that moving heavy loads (air conditioners, geysers, washing machines) away from the 6 PM–10 PM evening peak saves up to 50% on utility costs and reduces fossil peaker plant emissions.</p>
+              </div>
+            </div>
+
+            <!-- Interactive Mini Simulator: Try Load Shifting -->
+            <div class="solution-simulator-box" id="solution-simulator-box">
+              <div class="simulator-header">
+                <div>
+                  <span style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; color: var(--color-primary); letter-spacing: 0.05em;">Interactive Feature</span>
+                  <h4 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 2px 0 0 0;">
+                    Live Load-Shift Demonstration: 1.5-Ton Inverter AC (1,500W • 5 hrs/day)
+                  </h4>
+                </div>
+                <div class="simulator-toggle-row">
+                  <span style="font-size: 0.84rem; font-weight: 600; color: var(--text-secondary);">Operating Window:</span>
+                  <button type="button" class="sim-slot-btn active" id="sim-btn-peak" onclick="window.setSimSlot('peak')">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Evening Peak (6 PM – 10 PM)
+                  </button>
+                  <button type="button" class="sim-slot-btn" id="sim-btn-solar" onclick="window.setSimSlot('solar')">
+                    <i class="fa-solid fa-sun" style="color: #f59e0b;"></i> Solar Daytime (11 AM – 5 PM)
+                  </button>
+                  <button type="button" class="sim-slot-btn" id="sim-btn-offpeak" onclick="window.setSimSlot('offpeak')">
+                    <i class="fa-solid fa-moon" style="color: #10b981;"></i> Night Off-Peak (10 PM – 6 AM)
+                  </button>
+                </div>
+              </div>
+
+              <div class="simulator-metrics-grid">
+                <div class="sim-metric-card">
+                  <div class="sim-metric-label">Monthly Energy</div>
+                  <div class="sim-metric-val" id="sim-val-kwh">225 kWh</div>
+                  <div class="sim-metric-sub">7.5 kWh / day</div>
+                </div>
+
+                <div class="sim-metric-card">
+                  <div class="sim-metric-label">Effective Tariff</div>
+                  <div class="sim-metric-val" id="sim-val-rate" style="color: #ef4444;">₹9.75 / kWh</div>
+                  <div class="sim-metric-sub" id="sim-val-status">+50% Peak Surcharge</div>
+                </div>
+
+                <div class="sim-metric-card">
+                  <div class="sim-metric-label">Monthly Cost</div>
+                  <div class="sim-metric-val" id="sim-val-cost">₹2,194</div>
+                  <div class="sim-metric-sub">Base: ₹6.50 / kWh</div>
+                </div>
+
+                <div class="sim-metric-card" style="border-color: var(--color-primary-border); background: var(--color-primary-light);">
+                  <div class="sim-metric-label" style="color: var(--color-primary);">Savings Potential</div>
+                  <div class="sim-metric-val" id="sim-val-savings" style="color: var(--color-primary);">₹0 / mo</div>
+                  <div class="sim-metric-sub" id="sim-val-co2" style="color: var(--color-primary);">Currently on highest rate</div>
+                </div>
+              </div>
+
+              <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                  <i class="fa-solid fa-lightbulb" style="color: var(--color-amber);"></i> <strong>Insight:</strong> Shifting this single AC from Evening Peak to Night Off-Peak saves over <strong>₹1,000 every month</strong> and prevents <strong>92 kg of CO₂</strong> emissions!
+                </span>
+                <button class="btn-clean btn-primary-clean" onclick="switchView('scanner-view')">
+                  <i class="fa-solid fa-calculator"></i> Open Full Appliance Calculator <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Quick Launch Links to Other Screens -->
+          <div class="solution-nav-strip">
+            <button class="solution-nav-card" onclick="switchView('dashboard-view')">
+              <div class="sol-nav-icon"><i class="fa-solid fa-chart-line"></i></div>
+              <div>
+                <strong>Grid Telemetry & Load Curves</strong>
+                <span>Real-time 24h demand curves, frequency tracking & telemetry</span>
+              </div>
+            </button>
+
+            <button class="solution-nav-card" onclick="switchView('scanner-view')">
+              <div class="sol-nav-icon"><i class="fa-solid fa-calculator"></i></div>
+              <div>
+                <strong>Appliance Energy Calculator</strong>
+                <span>Audit household devices, calculate bills & simulate savings</span>
+              </div>
+            </button>
+
+            <button class="solution-nav-card" onclick="switchView('references-view')">
+              <div class="sol-nav-icon"><i class="fa-solid fa-book-bookmark"></i></div>
+              <div>
+                <strong>Scientific References & Standards</strong>
+                <span>Peer-reviewed studies, CEA emission factors & BEE standards</span>
+              </div>
+            </button>
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             VIEW 1: OVERVIEW & COMMAND CENTER
+             ================================================================ -->
+        <section class="view-section" id="home-view">
+          
+          <!-- Command Header & Profile Bar -->
+          <div class="command-profile-bar" id="home-onboarding-banner">
+            <div class="profile-summary-group">
+              <div class="profile-avatar-badge" id="banner-avatar-icon">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+              <div class="profile-text-meta">
+                <div class="profile-badge-row">
+                  <span class="badge-role" id="banner-welcome-heading">Active Consumer Account</span>
+                  <span class="badge-status-dot"></span>
+                  <span class="telemetry-tag">Microgrid Connected</span>
+                </div>
+                <p class="profile-subtext" id="banner-welcome-subheading">
+                  Active Profile: <strong id="home-user-name-bold">Primary Household</strong>. Conservation habits directly optimize local grid demand and reduce utility surcharges.
+                </p>
+              </div>
+            </div>
+            <div class="profile-actions-group">
+              <button class="btn-clean btn-primary-clean" id="btn-banner-setup-profile">
+                <i class="fa-solid fa-user-pen"></i> <span id="banner-btn-text">Edit Profile</span>
+              </button>
+              <button class="btn-clean btn-secondary-clean" id="btn-banner-switch-user">
+                <i class="fa-solid fa-users"></i> Switch Profile
+              </button>
+            </div>
+          </div>
+
+          <!-- Executive Command Hero -->
+          <div class="command-hero">
+            <div class="command-hero-badge" id="hero-student-pill">
+              <span class="live-pulse-dot"></span>
+              <span id="hero-pill-text">Smart Grid Telemetry • Demand-Side Management</span>
+            </div>
+            <h1 class="command-hero-title">
+              Electrical Energy Conservation <span class="text-accent">& Telemetry</span>
+            </h1>
+            <p class="command-hero-subtitle">
+              Continuous load monitoring, Time-of-Use tariff mitigation, and verified conservation protocols across residential premises, commercial facilities, and microgrid zones.
+            </p>
+
+            <div class="command-cta-row">
+              <button class="btn-clean btn-primary-clean btn-lg" id="btn-hero-missions">
+                <i class="fa-solid fa-list-check"></i> Today's Conservation Protocols
+              </button>
+              <button class="btn-clean btn-secondary-clean btn-lg" id="btn-hero-dashboard">
+                <i class="fa-solid fa-chart-line"></i> Operational Analytics
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Core Executive Metric Cards -->
+          <div class="executive-metrics-strip">
+            <div class="exec-metric-card">
+              <div class="exec-card-head">
+                <span class="exec-card-title">Active Microgrid Load</span>
+                <span class="exec-card-icon"><i class="fa-solid fa-gauge-high"></i></span>
+              </div>
+              <div class="exec-card-value">
+                <span class="metric-number">412.8</span>
+                <span class="metric-unit">kW</span>
+              </div>
+              <div class="exec-card-meta normal">
+                <i class="fa-solid fa-circle-check"></i> Normal Band • 14% under peak
+              </div>
+            </div>
+
+            <div class="exec-metric-card">
+              <div class="exec-card-head">
+                <span class="exec-card-title">Avoided Energy Today</span>
+                <span class="exec-card-icon text-accent"><i class="fa-solid fa-bolt"></i></span>
+              </div>
+              <div class="exec-card-value">
+                <span class="metric-number" id="home-metric-energy-saved">34.5</span>
+                <span class="metric-unit">kWh</span>
+              </div>
+              <div class="exec-card-meta text-accent">
+                <i class="fa-solid fa-arrow-trend-up"></i> +4.2 kWh vs daily target
+              </div>
+            </div>
+
+            <div class="exec-metric-card">
+              <div class="exec-card-head">
+                <span class="exec-card-title">CO₂ Emissions Avoided</span>
+                <span class="exec-card-icon"><i class="fa-solid fa-seedling"></i></span>
+              </div>
+              <div class="exec-card-value">
+                <span class="metric-number" id="home-metric-co2-saved">28.3</span>
+                <span class="metric-unit">kg</span>
+              </div>
+              <div class="exec-card-meta text-accent">
+                <i class="fa-solid fa-leaf"></i> 1.4 tree seedlings equivalent
+              </div>
+            </div>
+
+            <div class="exec-metric-card">
+              <div class="exec-card-head">
+                <span class="exec-card-title">Current Tariff Window</span>
+                <span class="exec-card-icon text-amber"><i class="fa-solid fa-clock"></i></span>
+              </div>
+              <div class="exec-card-value">
+                <span class="exec-tariff-label">Solar Daytime</span>
+                <span class="metric-unit">₹6.50/kWh</span>
+              </div>
+              <div class="exec-card-meta text-amber">
+                <i class="fa-solid fa-triangle-exclamation"></i> Evening Peak at 18:00 (+50%)
+              </div>
+            </div>
+          </div>
+
+          <!-- Two-Column Operational Command Grid -->
+          <div class="command-grid-layout">
+            
+            <!-- Left Main Column -->
+            <div class="command-main-col">
+              
+              <!-- Quick Protocols Section -->
+              <div class="institutional-card">
+                <div class="card-section-header">
+                  <div>
+                    <span class="section-tag">Daily Action List</span>
+                    <h3 class="card-section-title">High-Priority Conservation Protocols</h3>
+                  </div>
+                  <button class="btn-text-link" id="btn-view-all-missions" onclick="switchView('missions-view')">
+                    View All Missions <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+
+                <div class="quick-protocols-list" id="home-quick-protocols">
+                  <div class="quick-protocol-row">
+                    <div class="protocol-icon-cell"><i class="fa-solid fa-desktop"></i></div>
+                    <div class="protocol-info-cell">
+                      <strong>Power Down Computer Workstations & Displays</strong>
+                      <span>Home office & computing suites • Avoids 0.60 kWh</span>
+                    </div>
+                    <div class="protocol-reward-cell">
+                      <span class="xp-badge">+30 XP</span>
+                    </div>
+                  </div>
+                  <div class="quick-protocol-row">
+                    <div class="protocol-icon-cell"><i class="fa-solid fa-temperature-arrow-up"></i></div>
+                    <div class="protocol-info-cell">
+                      <strong>Regulate Air Conditioning to 24°C</strong>
+                      <span>Residential & office zones • Avoids 0.85 kWh</span>
+                    </div>
+                    <div class="protocol-reward-cell">
+                      <span class="xp-badge">+40 XP</span>
+                    </div>
+                  </div>
+                  <div class="quick-protocol-row">
+                    <div class="protocol-icon-cell"><i class="fa-solid fa-plug"></i></div>
+                    <div class="protocol-info-cell">
+                      <strong>Eliminate Phantom Standby Power Drain</strong>
+                      <span>Unplug dormant chargers & media consoles • Avoids 0.20 kWh</span>
+                    </div>
+                    <div class="protocol-reward-cell">
+                      <span class="xp-badge">+15 XP</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Why Electricity Conservation Matters -->
+              <div class="institutional-card">
+                <div class="card-section-header">
+                  <div>
+                    <span class="section-tag">Environmental Engineering</span>
+                    <h3 class="card-section-title">Why Demand-Side Electricity Conservation Matters</h3>
+                  </div>
+                </div>
+                <p class="card-section-intro">
+                  Residential and commercial complexes run dense cooling arrays, lighting banks, and continuous appliances. Eliminating unnecessary consumption reduces thermal grid strain and fossil combustion.
+                </p>
+
+                <div class="waste-grid-four">
+                  <div class="waste-item">
+                    <div class="waste-item-header">
+                      <span class="waste-icon"><i class="fa-solid fa-lightbulb"></i></span>
+                      <h4>Unattended Lighting</h4>
+                    </div>
+                    <p>Leaving unoccupied rooms, lobbies, and workspaces illuminated draws hundreds of kilowatt-hours needlessly.</p>
+                    <span class="waste-stat-note">Up to 22% of facility lighting</span>
+                  </div>
+
+                  <div class="waste-item">
+                    <div class="waste-item-header">
+                      <span class="waste-icon"><i class="fa-solid fa-snowflake"></i></span>
+                      <h4>HVAC Over-Cooling</h4>
+                    </div>
+                    <p>Setting AC units below 24°C compounds compressor strain, incurring a steep 6% power penalty per degree Celsius.</p>
+                    <span class="waste-stat-note">18–24% avoidable cooling draw</span>
+                  </div>
+
+                  <div class="waste-item">
+                    <div class="waste-item-header">
+                      <span class="waste-icon"><i class="fa-solid fa-plug"></i></span>
+                      <h4>Standby Phantom Power</h4>
+                    </div>
+                    <p>Transformers, docking stations, microwave clocks, and TV consoles draw vampire power continuously.</p>
+                    <span class="waste-stat-note">5–10% baseline electrical draw</span>
+                  </div>
+
+                  <div class="waste-item">
+                    <div class="waste-item-header">
+                      <span class="waste-icon"><i class="fa-solid fa-server"></i></span>
+                      <h4>Continuous Unshifted Loads</h4>
+                    </div>
+                    <p>Running high-wattage laundry washing machines, water geysers, and dishwashers during peak hours spikes costs.</p>
+                    <span class="waste-stat-note">+50% peak tariff penalty</span>
+                  </div>
+                </div>
+
+                <!-- Linear Ripple Effect -->
+                <div class="ripple-cascade-box">
+                  <div class="cascade-step">
+                    <span class="cascade-num">01</span>
+                    <div class="cascade-body">
+                      <strong>Individual Action</strong>
+                      <span>Adjusting AC setpoints & shifting laundry times</span>
+                    </div>
+                  </div>
+                  <div class="cascade-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                  <div class="cascade-step">
+                    <span class="cascade-num">02</span>
+                    <div class="cascade-body">
+                      <strong>Grid Peak Relief</strong>
+                      <span>Shaves 15–25% off regional peak demand</span>
+                    </div>
+                  </div>
+                  <div class="cascade-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                  <div class="cascade-step">
+                    <span class="cascade-num">03</span>
+                    <div class="cascade-body">
+                      <strong>Avoided Generation</strong>
+                      <span>Prevents thermal coal and gas peaker dispatch</span>
+                    </div>
+                  </div>
+                  <div class="cascade-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                  <div class="cascade-step">
+                    <span class="cascade-num">04</span>
+                    <div class="cascade-body">
+                      <strong>Climate Progress</strong>
+                      <span>Directly advances UN SDGs 7, 12, and 13</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Sidebar Column -->
+            <div class="command-side-col">
+              
+              <!-- Time-of-Use Tariff Radar -->
+              <div class="institutional-card">
+                <div class="card-section-header">
+                  <div>
+                    <span class="section-tag">Utility Tariffs</span>
+                    <h3 class="card-section-title">ToU Rate Schedule</h3>
+                  </div>
+                  <span class="telemetry-badge-live">Live</span>
+                </div>
+                <div class="tou-schedule-list">
+                  <div class="tou-schedule-row surge" id="home-tou-evening">
+                    <div class="tou-time-meta">
+                      <strong>18:00 – 22:00</strong>
+                      <span>Evening Peak Surge</span>
+                    </div>
+                    <div class="tou-rate-pill peak">+50% (₹9.75)</div>
+                  </div>
+                  <div class="tou-schedule-row surge" id="home-tou-morning">
+                    <div class="tou-time-meta">
+                      <strong>08:00 – 11:00</strong>
+                      <span>Morning Peak Surge</span>
+                    </div>
+                    <div class="tou-rate-pill peak">+35% (₹8.78)</div>
+                  </div>
+                  <div class="tou-schedule-row active normal" id="home-tou-solar">
+                    <div class="tou-time-meta">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <strong>11:00 – 18:00</strong>
+                        <span class="active-badge">Active</span>
+                      </div>
+                      <span>Solar Daytime Hours</span>
+                    </div>
+                    <div class="tou-rate-pill normal">Base (₹6.50)</div>
+                  </div>
+                  <div class="tou-schedule-row offpeak" id="home-tou-night">
+                    <div class="tou-time-meta">
+                      <strong>22:00 – 08:00</strong>
+                      <span>Night Off-Peak</span>
+                    </div>
+                    <div class="tou-rate-pill offpeak">-20% (₹5.20)</div>
+                  </div>
+                </div>
+                <div class="card-footer-tip">
+                  <i class="fa-solid fa-circle-info"></i> Shift heavy laundry and water heating to off-peak or solar hours to avoid surcharges.
+                </div>
+              </div>
+
+              <!-- Quick Hourly Cost Table -->
+              <div class="institutional-card">
+                <div class="card-section-header">
+                  <div>
+                    <span class="section-tag">Quick Reference</span>
+                    <h3 class="card-section-title">Appliance Operating Cost</h3>
+                  </div>
+                </div>
+                <table class="clean-data-table">
+                  <thead>
+                    <tr>
+                      <th>Appliance</th>
+                      <th>Wattage</th>
+                      <th style="text-align: right;">Cost / Hr</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><i class="fa-solid fa-snowflake" style="color: var(--color-primary); margin-right: 6px;"></i> Air Conditioner</td>
+                      <td class="mono">1,500 W</td>
+                      <td class="mono" style="text-align: right; color: #ef4444;">₹ 9.75</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fa-solid fa-desktop" style="color: var(--color-secondary); margin-right: 6px;"></i> Workstation PC</td>
+                      <td class="mono">250 W</td>
+                      <td class="mono" style="text-align: right;">₹ 1.63</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fa-solid fa-fan" style="color: var(--text-muted); margin-right: 6px;"></i> Ceiling Fan</td>
+                      <td class="mono">75 W</td>
+                      <td class="mono" style="text-align: right;">₹ 0.49</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fa-solid fa-lightbulb" style="color: var(--color-amber); margin-right: 6px;"></i> LED Fixture</td>
+                      <td class="mono">20 W</td>
+                      <td class="mono text-accent" style="text-align: right;">₹ 0.13</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Zone & Sector Compliance Benchmarks -->
+              <div class="institutional-card">
+                <div class="card-section-header">
+                  <div>
+                    <span class="section-tag">Sector Benchmarks</span>
+                    <h3 class="card-section-title">Zone Compliance</h3>
+                  </div>
+                </div>
+                <div class="dept-rank-list">
+                  <div class="dept-rank-row">
+                    <div class="dept-rank-info">
+                      <span class="rank-badge gold">1</span>
+                      <div>
+                        <strong>Residential Sector 4B</strong>
+                        <span class="dept-compliance-text">94.2% protocol compliance</span>
+                      </div>
+                    </div>
+                    <span class="dept-score-val mono">1,820 pts</span>
+                  </div>
+                  <div class="dept-rank-row">
+                    <div class="dept-rank-info">
+                      <span class="rank-badge silver">2</span>
+                      <div>
+                        <strong>Commercial Tech Complex</strong>
+                        <span class="dept-compliance-text">91.8% protocol compliance</span>
+                      </div>
+                    </div>
+                    <span class="dept-score-val mono">1,640 pts</span>
+                  </div>
+                  <div class="dept-rank-row">
+                    <div class="dept-rank-info">
+                      <span class="rank-badge bronze">3</span>
+                      <div>
+                        <strong>Solar Microgrid District</strong>
+                        <span class="dept-compliance-text">88.5% protocol compliance</span>
+                      </div>
+                    </div>
+                    <span class="dept-score-val mono">1,490 pts</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 2: DASHBOARD
+             ================================================================ -->
+        <section class="view-section" id="dashboard-view">
+          
+          <!-- Command Header -->
+          <div class="dashboard-header">
+            <div>
+              <span class="section-tag" id="dash-operator-tag">Microgrid Energy Dashboard</span>
+              <h2 class="font-display" style="font-size: 1.85rem; font-weight: 800;">
+                Electricity Savings & Telemetry Overview
+              </h2>
+              <div style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 4px;" id="dash-student-subheading">
+                <i class="fa-solid fa-user-check" style="color: var(--color-primary);"></i> Active Consumer Profile
+              </div>
+            </div>
+
+            <div class="command-status-bar">
+              <div class="telemetry-chip" id="dash-edit-chip" style="cursor: pointer;" title="Edit Profile Details">
+                <i class="fa-solid fa-user-pen"></i>
+                <span id="dash-student-chip-name">Profile: Set Details</span>
+              </div>
+              <div class="telemetry-chip">
+                <i class="fa-solid fa-clock"></i>
+                <span id="live-uptime-clock">00:00:00</span>
+              </div>
+              <div class="telemetry-chip">
+                <i class="fa-solid fa-satellite-dish" style="color: var(--color-primary);"></i>
+                <span>Grid Synced</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Motivational Quote Bar -->
+          <div class="quote-banner">
+            <div class="quote-content">
+              <div class="quote-icon"><i class="fa-solid fa-quote-left"></i></div>
+              <div>
+                <p class="quote-text" id="daily-quote-text">“Every watt shifted away from peak hours prevents fossil combustion and strengthens the grid.”</p>
+                <span class="quote-author" id="daily-quote-author">— Smart Grid Clean Energy Initiative</span>
+              </div>
+            </div>
+            <button class="btn-icon-refresh" id="btn-refresh-quote" title="Get new inspiration quote">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+          </div>
+
+          <!-- 7 Core Metric Cards -->
+          <div class="dashboard-metrics-grid">
+            <!-- Score -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Saving Score</span>
+                <span class="metric-icon"><i class="fa-solid fa-bolt"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-today-score">94</span>
+                <span class="metric-unit">/100</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-arrow-trend-up"></i> +8% vs yesterday
+              </div>
+            </div>
+
+            <!-- CO2 Saved -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">CO₂ Avoided</span>
+                <span class="metric-icon" style="color: var(--color-primary);"><i class="fa-solid fa-seedling"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-co2-saved">7.8</span>
+                <span class="metric-unit">kg</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-leaf"></i> Cleaner air
+              </div>
+            </div>
+
+            <!-- Streak -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Current Streak</span>
+                <span class="metric-icon" style="color: #f97316;"><i class="fa-solid fa-fire"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-streak">7 DAYS</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-award"></i> Active habit
+              </div>
+            </div>
+
+            <!-- Total Points / XP -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Total Points</span>
+                <span class="metric-icon" style="color: var(--color-secondary);"><i class="fa-solid fa-star"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-total-xp">420 XP</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-ranking-star"></i> High Efficiency Tier
+              </div>
+            </div>
+
+            <!-- Energy Used -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Energy Used</span>
+                <span class="metric-icon" style="color: #ef4444;"><i class="fa-solid fa-plug"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-energy-used">42.6 kWh</span>
+              </div>
+              <div class="metric-trend" style="color: var(--text-muted);">
+                Estimated loads
+              </div>
+            </div>
+
+            <!-- Energy Saved -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Energy Saved</span>
+                <span class="metric-icon" style="color: var(--color-primary);"><i class="fa-solid fa-battery-half"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-energy-saved">18.4 kWh</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-check"></i> Clean conservation
+              </div>
+            </div>
+
+            <!-- Completed Missions -->
+            <div class="glass-panel metric-card">
+              <div class="metric-card-header">
+                <span class="metric-label">Missions Done</span>
+                <span class="metric-icon" style="color: var(--color-secondary);"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-number" id="dash-completed-count">2</span>
+                <span class="metric-unit">Active</span>
+              </div>
+              <div class="metric-trend">
+                <i class="fa-solid fa-plus"></i> More available
+              </div>
+            </div>
+          </div>
+
+          <!-- Analytics Grid: Weekly Chart + Target Completion Gauge -->
+          <div class="dashboard-analytics-grid">
+            <!-- Chart.js Graph -->
+            <div class="glass-panel chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <h3>Weekly Energy Savings</h3>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary);">Daily kilowatt-hours saved vs Target Baseline</p>
+                </div>
+                <div class="chart-toggle-group">
+                  <button class="mission-filter-btn active" data-period="weekly">Weekly</button>
+                  <button class="mission-filter-btn" data-period="monthly">Monthly</button>
+                </div>
+              </div>
+              <div class="chart-container-wrap">
+                <canvas id="weeklyEnergyChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Circular Target Progress Gauge -->
+            <div class="glass-panel gauge-card">
+              <div class="gauge-card-header">
+                <h3>Daily Savings Goal</h3>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;" id="dash-target-desc">Progress toward daily 1.5 kWh target</p>
+
+              <div class="gauge-meter-wrap">
+                <div class="circular-gauge">
+                  <svg viewBox="0 0 160 160">
+                    <circle class="circle-bg" cx="80" cy="80" r="70" />
+                    <circle class="circle-fill" id="dash-gauge-circle" cx="80" cy="80" r="70" />
+                  </svg>
+                  <div class="gauge-center-text">
+                    <span class="gauge-percent" id="dash-gauge-percent">76%</span>
+                    <span class="gauge-subtext">COMPLETED</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Level Progress Strip -->
+              <div style="margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px;">
+                  <span id="dash-current-level-name"><i class="fa-solid fa-shield-halved" style="color: var(--color-primary); margin-right: 4px;"></i> Energy Saver</span>
+                  <span id="dash-level-progress-percent" style="color: var(--color-primary);">45% to Tier 3</span>
+                </div>
+                <div class="level-strip-bar">
+                  <div class="level-strip-fill" id="dash-level-progress-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 3: DAILY MISSIONS
+             ================================================================ -->
+        <section class="view-section" id="missions-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 1.5rem;">
+            <span class="section-tag">Actionable Habits</span>
+            <h2 class="section-title">Daily Energy Efficiency Missions</h2>
+            <p class="section-desc">
+              Complete actionable conservation protocols across your premises. Each completed mission earns XP points, builds your saving streak, and prevents real kilowatt-hours of wasted electricity.
+            </p>
+          </div>
+
+          <!-- Mission Filters -->
+          <div class="missions-filter-bar">
+            <button class="mission-filter-btn active" data-filter="all">All Missions</button>
+            <button class="mission-filter-btn" data-filter="living">Home & Living</button>
+            <button class="mission-filter-btn" data-filter="cooling">Air Conditioning</button>
+            <button class="mission-filter-btn" data-filter="space">Lighting & Space</button>
+            <button class="mission-filter-btn" data-filter="tech">Tech & Appliances</button>
+          </div>
+
+          <!-- Missions Cards Grid -->
+          <div class="missions-cards-grid" id="missions-cards-grid">
+            <!-- Dynamically populated via script.js -->
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 4: ENERGY SCANNER / CALCULATOR
+             ================================================================ -->
+        <section class="view-section" id="scanner-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <span class="section-tag">Precise Consumption & Surge Pricing</span>
+                <h2 class="section-title">Appliance Energy & Surge Cost Calculator</h2>
+                <p class="section-desc">
+                  Calculate exact electrical consumption (kWh), compare Time-of-Day (ToD) tariff surge rates, and audit your most-used appliances to prevent costly peak-grid surcharges.
+                </p>
+              </div>
+              <!-- Live Grid Tariff Status Badge -->
+              <div class="live-tariff-status-badge" id="live-tariff-status-badge">
+                <div class="status-pulse-dot"></div>
+                <div class="status-tariff-text">
+                  <span class="tariff-badge-title">Smart Grid Status</span>
+                  <span class="tariff-badge-state" id="current-tariff-state-text">Solar Daytime (Base Rate)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time-of-Use (ToU) Tariff Explainer Strip -->
+          <div class="glass-panel tou-schedule-strip">
+            <div class="tou-pill peak" id="tou-pill-evening">
+              <span class="tou-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
+              <div class="tou-info">
+                <strong>Evening Peak Surge</strong>
+                <span>18:00 – 22:00 (6 PM – 10 PM) • <strong>+50% Surge</strong></span>
+              </div>
+            </div>
+            <div class="tou-pill morning" id="tou-pill-morning">
+              <span class="tou-icon"><i class="fa-solid fa-chart-line"></i></span>
+              <div class="tou-info">
+                <strong>Morning Peak Surge</strong>
+                <span>08:00 – 11:00 (8 AM – 11 AM) • <strong>+35% Surge</strong></span>
+              </div>
+            </div>
+            <div class="tou-pill normal" id="tou-pill-solar">
+              <span class="tou-icon"><i class="fa-solid fa-sun"></i></span>
+              <div class="tou-info">
+                <strong>Solar Daytime</strong>
+                <span>11:00 – 18:00 (11 AM – 6 PM) • <strong>Standard Base Rate</strong></span>
+              </div>
+            </div>
+            <div class="tou-pill offpeak" id="tou-pill-night">
+              <span class="tou-icon"><i class="fa-solid fa-moon"></i></span>
+              <div class="tou-info">
+                <strong>Night Off-Peak</strong>
+                <span>22:00 – 08:00 (10 PM – 8 AM) • <strong>-20% Green Discount</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-Column Calculator Grid -->
+          <div class="scanner-grid">
+            <!-- Left: Interactive Inputs Card -->
+            <div class="glass-panel scanner-controls-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 600;">
+                  <i class="fa-solid fa-sliders" style="color: var(--color-primary);"></i> Calculator Parameters
+                </h3>
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Dynamic Math Engine</span>
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="form-group">
+                <label class="form-label">Select Common Appliance Preset:</label>
+                <div class="preset-pills" id="scanner-preset-chips">
+                  <!-- Generated via JS -->
+                </div>
+              </div>
+
+              <div class="calculator-inputs-grid">
+                <!-- Appliance Name -->
+                <div class="form-group">
+                  <label class="form-label" for="scanner-appliance-name">Appliance Name</label>
+                  <div class="form-input-box">
+                    <input type="text" class="form-control" id="scanner-appliance-name" value="Laptop Computer" placeholder="e.g. Study Desk Lamp" />
+                  </div>
+                </div>
+
+                <!-- Quantity -->
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between;">
+                    <label class="form-label" for="scanner-qty">Quantity (Units)</label>
+                    <span id="scanner-qty-val" style="font-size: 0.85rem; font-weight: 600; color: var(--color-primary);">1 Unit</span>
+                  </div>
+                  <input type="range" class="form-control" id="scanner-qty" min="1" max="10" step="1" value="1" />
+                </div>
+              </div>
+
+              <!-- Power Rating (Watts) -->
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="form-label" for="scanner-watts">Power Rating (Watts)</label>
+                  <div class="watts-quick-badges">
+                    <span id="scanner-watts-val" class="value-highlight">65 W</span>
+                    <span id="scanner-kw-val" style="font-size: 0.78rem; color: var(--text-muted);">(0.065 kW)</span>
+                  </div>
+                </div>
+                <input type="range" class="form-control" id="scanner-watts" min="5" max="3500" step="5" value="65" />
+                <div class="range-labels">
+                  <span>5W (LED)</span>
+                  <span>75W (Fan)</span>
+                  <span>1000W (Iron)</span>
+                  <span>1500W (AC)</span>
+                  <span>3500W (Heavy)</span>
+                </div>
+              </div>
+
+              <!-- Usage per Day (Hours) -->
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between;">
+                  <label class="form-label" for="scanner-hours">Daily Usage Duration (Hours / Day)</label>
+                  <span id="scanner-hours-val" class="value-highlight">6.0 hrs</span>
+                </div>
+                <input type="range" class="form-control" id="scanner-hours" min="0.25" max="24" step="0.25" value="6" />
+                <div class="range-labels">
+                  <span>15 mins</span>
+                  <span>2 hrs</span>
+                  <span>6 hrs</span>
+                  <span>12 hrs</span>
+                  <span>24 hrs</span>
+                </div>
+              </div>
+
+              <!-- When is this Appliance Used Most? (SURGE PRICING SELECTOR) -->
+              <div class="form-group time-of-use-group">
+                <label class="form-label">
+                  <i class="fa-solid fa-clock" style="color: var(--color-secondary);"></i>
+                  When is this Appliance Used Most? (Time of Use / Surge Slot)
+                </label>
+                <div class="time-slot-picker-grid" id="time-slot-picker">
+                  <button type="button" class="time-slot-btn" data-slot="evening" id="slot-btn-evening">
+                    <div class="slot-badge-tag surge"><i class="fa-solid fa-arrow-trend-up"></i> Evening Peak</div>
+                    <div class="slot-time-range">6:00 PM – 10:00 PM</div>
+                    <div class="slot-cost-mod">+50% Peak Surge Tariff</div>
+                  </button>
+
+                  <button type="button" class="time-slot-btn" data-slot="morning" id="slot-btn-morning">
+                    <div class="slot-badge-tag surge"><i class="fa-solid fa-chart-line"></i> Morning Peak</div>
+                    <div class="slot-time-range">8:00 AM – 11:00 AM</div>
+                    <div class="slot-cost-mod">+35% Morning Peak</div>
+                  </button>
+
+                  <button type="button" class="time-slot-btn active" data-slot="solar" id="slot-btn-solar">
+                    <div class="slot-badge-tag normal"><i class="fa-solid fa-sun"></i> Solar Daytime</div>
+                    <div class="slot-time-range">11:00 AM – 6:00 PM</div>
+                    <div class="slot-cost-mod">Standard Base Rate</div>
+                  </button>
+
+                  <button type="button" class="time-slot-btn" data-slot="offpeak" id="slot-btn-offpeak">
+                    <div class="slot-badge-tag green"><i class="fa-solid fa-moon"></i> Night Off-Peak</div>
+                    <div class="slot-time-range">10:00 PM – 8:00 AM</div>
+                    <div class="slot-cost-mod">-20% Economy Discount</div>
+                  </button>
+
+                  <button type="button" class="time-slot-btn" data-slot="allday" id="slot-btn-allday">
+                    <div class="slot-badge-tag neutral"><i class="fa-solid fa-arrows-spin"></i> All-Day Continuous</div>
+                    <div class="slot-time-range">24-Hour Continuous (Fridge/Router)</div>
+                    <div class="slot-cost-mod">Weighted Average (1.08x)</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Base Electricity Tariff & Days Row -->
+              <div class="calculator-inputs-grid" style="margin-top: 1rem;">
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between;">
+                    <label class="form-label" for="scanner-tariff">Base Grid Tariff (₹ / kWh)</label>
+                    <span id="scanner-tariff-val" class="value-highlight">₹ 8.50</span>
+                  </div>
+                  <input type="range" class="form-control" id="scanner-tariff" min="3" max="16" step="0.25" value="8.5" />
+                </div>
+
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between;">
+                    <label class="form-label" for="scanner-days">Days / Month</label>
+                    <span id="scanner-days-val" class="value-highlight">30 days</span>
+                  </div>
+                  <input type="range" class="form-control" id="scanner-days" min="1" max="30" step="1" value="30" />
+                </div>
+              </div>
+
+              <!-- Add to Most-Used Roster Button -->
+              <div class="calculator-actions-bar">
+                <button type="button" class="btn-clean btn-primary-clean" id="btn-add-to-audit" style="flex: 1; justify-content: center;">
+                  <i class="fa-solid fa-plus"></i> Add to Appliance Audit Roster
+                </button>
+                <button type="button" class="btn-clean btn-secondary-clean" id="btn-reset-calculator" title="Reset parameters to default">
+                  <i class="fa-solid fa-rotate-left"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Results & Surge Impact Card -->
+            <div class="glass-panel scanner-results-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 600;">
+                  <i class="fa-solid fa-chart-simple" style="color: var(--color-secondary);"></i> Electricity Consumption Analysis
+                </h3>
+                <span class="calc-accuracy-tag"><i class="fa-solid fa-check-double"></i> Verified Math</span>
+              </div>
+
+              <!-- 4 Core Metrics Grid -->
+              <div class="scanner-results-display">
+                <!-- Energy (kWh) -->
+                <div class="result-block">
+                  <span class="result-block-title">Monthly Energy (kWh)</span>
+                  <div class="result-block-val" id="scanner-kwh-result">11.7 kWh</div>
+                  <div class="result-sub-metrics">
+                    <span id="scanner-daily-kwh">0.39 kWh / day</span> • 
+                    <span id="scanner-annual-kwh">142.4 kWh / yr</span>
+                  </div>
+                </div>
+
+                <!-- Monthly Cost (₹) with Surge Detail -->
+                <div class="result-block cost-block">
+                  <span class="result-block-title">Monthly Electricity Cost</span>
+                  <div class="result-block-val" style="color: var(--color-amber);" id="scanner-money-result">₹ 99.45</div>
+                  <div class="result-sub-metrics" id="scanner-surge-cost-breakdown">
+                    <span id="scanner-base-cost-text">Base: ₹ 99.45</span>
+                    <span class="surge-surcharge-pill" id="scanner-surge-pill">No Surge</span>
+                  </div>
+                </div>
+
+                <!-- Carbon Footprint -->
+                <div class="result-block">
+                  <span class="result-block-title">Carbon Footprint</span>
+                  <div class="result-block-val" style="color: #ef4444;" id="scanner-co2-result">9.6 kg</div>
+                  <div class="result-sub-metrics" id="scanner-trees-offset">
+                    <span>≈ 0.5 tree seedlings / month</span>
+                  </div>
+                </div>
+
+                <!-- Effective Tariff & Load Tier -->
+                <div class="result-block">
+                  <span class="result-block-title">Effective Rate & Tier</span>
+                  <div class="result-block-val" style="font-size: 1.25rem;" id="scanner-effective-rate">₹ 8.50 / kWh</div>
+                  <div class="result-sub-metrics">
+                    <span id="scanner-tier-tag" style="font-weight: 600;">Moderate Load</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- High Power Surge Alert Box (Dynamic Alert) -->
+              <div class="surge-alert-banner" id="scanner-surge-alert" style="display: none;">
+                <div class="surge-alert-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="surge-alert-body">
+                  <h4 id="surge-alert-heading">High-Power Surge Warning</h4>
+                  <p id="surge-alert-text">
+                    This high wattage appliance is scheduled during the regional evening peak surge window (18:00–22:00). You are paying 50% more per kilowatt-hour.
+                  </p>
+                  <div class="surge-savings-badge" id="surge-alert-savings">
+                    <i class="fa-solid fa-lightbulb"></i> Shift to Off-Peak (after 10 PM) or Daytime Solar to save up to ₹185.00/month.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Time of Use Tariff Rate Comparison Bars -->
+              <div class="tariff-comparison-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                    Cost Comparison Across Different Times of Day
+                  </span>
+                  <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 600;" id="scanner-shift-diff-text">
+                    Save up to ₹45/mo by timing
+                  </span>
+                </div>
+
+                <div class="comparison-row">
+                  <span class="comp-label"><i class="fa-solid fa-arrow-trend-up"></i> Evening Peak (1.5x)</span>
+                  <div class="comp-bar-track">
+                    <div class="comp-bar-fill peak" id="comp-bar-peak" style="width: 100%;"></div>
+                  </div>
+                  <span class="comp-val" id="comp-val-peak">₹ 149.18</span>
+                </div>
+
+                <div class="comparison-row">
+                  <span class="comp-label"><i class="fa-solid fa-sun"></i> Solar Daytime (1.0x)</span>
+                  <div class="comp-bar-track">
+                    <div class="comp-bar-fill normal" id="comp-bar-normal" style="width: 67%;"></div>
+                  </div>
+                  <span class="comp-val" id="comp-val-normal">₹ 99.45</span>
+                </div>
+
+                <div class="comparison-row">
+                  <span class="comp-label"><i class="fa-solid fa-moon"></i> Night Off-Peak (0.8x)</span>
+                  <div class="comp-bar-track">
+                    <div class="comp-bar-fill offpeak" id="comp-bar-offpeak" style="width: 53%;"></div>
+                  </div>
+                  <span class="comp-val text-accent" id="comp-val-offpeak">₹ 79.56</span>
+                </div>
+              </div>
+
+              <!-- Tier fill bar -->
+              <div class="scanner-tier-bar">
+                <div class="scanner-tier-fill" id="scanner-tier-fill"></div>
+              </div>
+
+              <!-- Dedicated Ways to Reduce Electricity & Cost (Based on Appliance & Time) -->
+              <div class="reduction-advice-card" id="scanner-reduction-advice-card">
+                <div class="reduction-advice-header">
+                  <span class="reduction-advice-title">
+                    <i class="fa-solid fa-lightbulb" style="color: var(--color-amber);"></i>
+                    Ways to Reduce Electricity & Cost
+                  </span>
+                  <span id="scanner-timing-tag" class="badge-tou-slot normal">Analyzing Timing...</span>
+                </div>
+
+                <!-- Time Shift & Financial Savings Box -->
+                <div class="timing-savings-box" id="timing-savings-box">
+                  <div class="timing-savings-text" id="timing-savings-text">
+                    Calculating time-of-use impact...
+                  </div>
+                  <div class="timing-actions-row" id="timing-actions-row">
+                    <!-- Quick Shift Buttons -->
+                  </div>
+                </div>
+
+                <!-- Specific Appliance & Operational Tips -->
+                <div class="reduction-tips-list" id="reduction-tips-list">
+                  <!-- Generated via script.js based on appliance and operating hours -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================================================================
+               MY MOST-USED APPLIANCES AUDIT & SURGE ROSTER
+               ================================================================ -->
+          <div class="glass-panel appliance-audit-section" style="margin-top: 2rem;">
+            <div class="audit-section-header">
+              <div>
+                <span class="section-tag">Daily Appliance & Cost Audit</span>
+                <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary);">
+                  My Daily Appliances & Time-of-Use Audit
+                </h3>
+                <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 4px;">
+                  Add the electrical appliances you use every day, see approximate electricity consumption and costs, and discover actionable ways to reduce your bill based on what time you use them.
+                </p>
+              </div>
+
+              <div class="audit-header-actions">
+                <button type="button" class="btn-clean btn-primary-clean" id="btn-export-audit" title="Export, copy, or print energy audit report">
+                  <i class="fa-solid fa-file-export"></i> Export Report
+                </button>
+                <button type="button" class="btn-clean btn-secondary-clean" id="btn-quick-add-sample" title="Add standard household appliances">
+                  <i class="fa-solid fa-list-check"></i> Quick Add Common Appliances
+                </button>
+                <button type="button" class="btn-clean btn-secondary-clean" id="btn-clear-audit" title="Clear appliance audit list">
+                  <i class="fa-solid fa-trash-can"></i> Clear All
+                </button>
+              </div>
+            </div>
+
+            <!-- Cumulative Audit Summary Cards -->
+            <div class="audit-summary-strip">
+              <div class="audit-summary-stat">
+                <span class="stat-label">Total Daily & Monthly Electricity</span>
+                <strong class="stat-num" id="audit-total-kwh">0.0 kWh</strong>
+                <span class="stat-sub" id="audit-daily-average">0.0 kWh / day • 0.0 kWh / yr</span>
+              </div>
+
+              <div class="audit-summary-stat">
+                <span class="stat-label">Approximate Monthly & Annual Cost</span>
+                <strong class="stat-num" style="color: var(--color-amber);" id="audit-total-bill">₹ 0.00</strong>
+                <span class="stat-sub" id="audit-base-bill-text">≈ ₹ 0.00 / day • ₹ 0.00 / yr</span>
+              </div>
+
+              <div class="audit-summary-stat">
+                <span class="stat-label">Peak Surge Penalty Incurred</span>
+                <strong class="stat-num" style="color: #ef4444;" id="audit-total-surge-penalty">+₹ 0.00</strong>
+                <span class="stat-sub" id="audit-surge-devices-count">0 appliances in surge window</span>
+              </div>
+
+              <div class="audit-summary-stat highlight-savings">
+                <span class="stat-label">Smart Shift Savings Potential</span>
+                <strong class="stat-num" style="color: var(--color-primary);" id="audit-shift-savings">Save ₹ 0.00 / mo</strong>
+                <span class="stat-sub" id="audit-co2-avoided-text">0.0 kg CO₂ emissions avoidable</span>
+              </div>
+            </div>
+
+            <!-- Roster Filter and Search Toolbar -->
+            <div class="audit-toolbar">
+              <div class="audit-filter-chips" id="audit-filter-chips">
+                <button type="button" class="audit-filter-chip active" data-audit-filter="all">
+                  All Appliances (<span id="audit-filter-count-all">0</span>)
+                </button>
+                <button type="button" class="audit-filter-chip" data-audit-filter="surge">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Peak Surge (<span id="audit-filter-count-surge">0</span>)
+                </button>
+                <button type="button" class="audit-filter-chip" data-audit-filter="solar">
+                  <i class="fa-solid fa-sun"></i> Solar (<span id="audit-filter-count-solar">0</span>)
+                </button>
+                <button type="button" class="audit-filter-chip" data-audit-filter="offpeak">
+                  <i class="fa-solid fa-moon"></i> Off-Peak (<span id="audit-filter-count-offpeak">0</span>)
+                </button>
+                <button type="button" class="audit-filter-chip" data-audit-filter="allday">
+                  <i class="fa-solid fa-arrows-spin"></i> 24h Continuous (<span id="audit-filter-count-allday">0</span>)
+                </button>
+              </div>
+              <div class="audit-sort-search">
+                <div class="audit-search-box">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="audit-search-input" placeholder="Search appliances in audit..." />
+                </div>
+                <div class="audit-sort-box">
+                  <label for="audit-sort-select" title="Sort appliance audit roster"><i class="fa-solid fa-arrow-down-wide-short"></i></label>
+                  <select id="audit-sort-select" class="audit-sort-select">
+                    <option value="cost-desc">Sort: Highest Cost</option>
+                    <option value="watts-desc">Sort: Highest Watts</option>
+                    <option value="kwh-desc">Sort: Highest Monthly kWh</option>
+                    <option value="hours-desc">Sort: Longest Daily Usage</option>
+                    <option value="name-asc">Sort: Name (A–Z)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Appliances Table / Roster Grid -->
+            <div class="appliances-roster-container">
+              <div class="table-responsive">
+                <table class="appliance-audit-table" id="appliance-audit-table">
+                  <thead>
+                    <tr>
+                      <th>Appliance & Load</th>
+                      <th>Power (W)</th>
+                      <th>Daily Usage</th>
+                      <th>Time of Use Slot</th>
+                      <th>Electricity Consumed</th>
+                      <th>Approx. Cost</th>
+                      <th>Ways to Reduce (Time & Appliance)</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="appliance-audit-tbody">
+                    <!-- Populated dynamically via script.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 5: LEADERBOARD
+             ================================================================ -->
+        <section class="view-section" id="leaderboard-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+            <span class="section-tag">Community Standings</span>
+            <h2 class="section-title">Energy Conservation Leaderboard</h2>
+            <p class="section-desc">
+              Top-ranked energy conservators leading their sectors and districts in cumulative electricity savings and demand-response missions.
+            </p>
+          </div>
+
+          <!-- Top 3 Podium Cards -->
+          <div class="leaderboard-podium-grid">
+            <!-- 2nd Place -->
+            <div class="glass-panel podium-card second" id="podium-2">
+              <div class="podium-crown rank-2"><i class="fa-solid fa-award"></i> Rank 2</div>
+              <div class="podium-avatar">KN</div>
+              <h3 class="podium-name">Kavya N</h3>
+              <div class="podium-dept">Commercial Suite</div>
+              <div class="podium-xp">890 XP</div>
+            </div>
+
+            <!-- 1st Place (Winner) -->
+            <div class="glass-panel podium-card first" id="podium-1">
+              <div class="podium-crown rank-1"><i class="fa-solid fa-trophy"></i> Rank 1</div>
+              <div class="podium-avatar" style="background: var(--color-amber-light); color: var(--color-amber);">RS</div>
+              <h3 class="podium-name">Rahul S</h3>
+              <div class="podium-dept">Green Valley Residence</div>
+              <div class="podium-xp">1,120 XP</div>
+            </div>
+
+            <!-- 3rd Place -->
+            <div class="glass-panel podium-card third" id="podium-3">
+              <div class="podium-crown rank-3"><i class="fa-solid fa-medal"></i> Rank 3</div>
+              <div class="podium-avatar">SM</div>
+              <h3 class="podium-name">Souparnika</h3>
+              <div class="podium-dept">Solar Prosumer</div>
+              <div class="podium-xp">745 XP</div>
+            </div>
+          </div>
+
+          <!-- Full Table -->
+          <div class="glass-panel leaderboard-table-card">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Conservator</th>
+                  <th>Total XP</th>
+                  <th>Level Rank</th>
+                  <th>Missions</th>
+                  <th>Streak</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody">
+                <!-- Dynamically populated via script.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 6: MY PROFILE & BADGES VAULT
+             ================================================================ -->
+        <section class="view-section" id="profile-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+            <span class="section-tag">User Profile</span>
+            <h2 class="section-title">My Profile & Achievements</h2>
+            <p class="section-desc">
+              Review your personal energy conservation milestones, unlocked achievement badges, and level progression.
+            </p>
+          </div>
+
+          <div class="profile-view-grid">
+            <!-- Identity Card -->
+            <div class="glass-panel profile-identity-card">
+              <div class="profile-avatar-large" id="profile-avatar-initial">SM</div>
+
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h3 class="profile-name" id="profile-display-name">Energy Conservator</h3>
+                <button class="btn-icon-refresh" id="btn-edit-username" title="Edit your profile details" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+
+              <div class="profile-college" id="profile-college-name">Green Valley District</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;" id="profile-dept-name">Sector 4B Substation</div>
+              <div style="font-size: 0.8rem; color: var(--color-primary); font-weight: 500; margin-bottom: 1rem;" id="profile-dorm-target">Unit: 204 • Target: 1.5 kWh/day</div>
+
+              <div class="profile-badge-pill" id="profile-level-tag">
+                <i class="fa-solid fa-shield-halved" style="color: var(--color-primary); margin-right: 4px;"></i> Energy Associate
+              </div>
+
+              <!-- XP Track to next tier -->
+              <div style="width: 100%; margin: 1rem 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px;">
+                  <span id="profile-xp-label">0 XP</span>
+                  <span id="profile-xp-target" style="color: var(--text-muted);">200 XP (200 XP needed)</span>
+                </div>
+                <div class="level-strip-bar">
+                  <div class="level-strip-fill" id="profile-xp-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Profile Management Action Buttons -->
+              <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 1rem;">
+                <button class="btn-clean btn-primary-clean" id="btn-open-profile-edit" style="width: 100%; justify-content: center; font-size: 0.85rem;">
+                  <i class="fa-solid fa-user-pen"></i> Edit My Profile
+                </button>
+                <button class="btn-clean btn-secondary-clean" id="btn-register-new-student" style="width: 100%; justify-content: center; font-size: 0.85rem;">
+                  <i class="fa-solid fa-user-plus"></i> Sign Up Another Profile
+                </button>
+                <button class="btn-clean btn-secondary-clean" id="btn-profile-switch-account" style="width: 100%; justify-content: center; font-size: 0.82rem;">
+                  <i class="fa-solid fa-users"></i> Switch Profile Account
+                </button>
+              </div>
+            </div>
+
+            <!-- Lifetime Stats & Badges Vault -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <!-- Cumulative Stats -->
+              <div class="glass-panel" style="padding: 1.75rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 1.25rem;">
+                  <i class="fa-solid fa-chart-pie" style="color: var(--color-primary);"></i> Lifetime Savings Record
+                </h3>
+
+                <div class="profile-stats-summary">
+                  <div class="profile-mini-stat">
+                    <span>Clean Energy Saved</span>
+                    <strong style="color: var(--color-primary);" id="profile-total-kwh">18.4 kWh</strong>
+                  </div>
+                  <div class="profile-mini-stat">
+                    <span>CO₂ Avoided</span>
+                    <strong style="color: var(--color-secondary);" id="profile-total-co2">7.8 kg</strong>
+                  </div>
+                  <div class="profile-mini-stat">
+                    <span>Missions Done</span>
+                    <strong style="color: var(--color-amber);" id="profile-total-missions">2</strong>
+                  </div>
+                  <div class="profile-mini-stat">
+                    <span>Habit Streak</span>
+                    <strong style="color: #f97316;" id="profile-streak-count">7 Days</strong>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                  <button class="btn-clean btn-secondary-clean" id="btn-reset-demo-data" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Demo Data
+                  </button>
+                </div>
+              </div>
+
+              <!-- Badges Vault -->
+              <div class="glass-panel badges-vault-card">
+                <h3 style="font-size: 1.15rem; font-weight: 600;">
+                  <i class="fa-solid fa-award" style="color: var(--color-amber);"></i> Achievement Badges
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">Click any badge to view verification requirements.</p>
+
+                <div class="badges-vault-grid" id="badges-vault-grid">
+                  <!-- Dynamically populated via script.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 7: IMPACT & SDG SUSTAINABILITY SECTION
+             ================================================================ -->
+        <section class="view-section" id="impact-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+            <span class="section-tag">Sustainable Development Goals</span>
+            <h2 class="section-title">UN Global Goals Alignment</h2>
+            <p class="section-desc">
+              EcoSpark directly connects grassroots electricity reduction and demand-side management with the United Nations 2030 Sustainable Development Goals.
+            </p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+            <!-- SDG 7 -->
+            <div class="glass-panel" style="padding: 1.5rem; border-top: 4px solid #fcc30b;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.5rem; font-weight: 800; color: #fcc30b;">SDG 07</span>
+                <span style="font-size: 0.72rem; font-weight: 600; background: #fffbeb; color: #d97706; padding: 2px 8px; border-radius: var(--radius-sm);">Clean Energy</span>
+              </div>
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">Affordable & Clean Energy</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55;">
+                Target 7.3 aims to double the global rate of improvement in energy efficiency. Consumers eliminating phantom standby drain and optimizing AC cooling directly lower reliance on thermal grid peaker plants.
+              </p>
+            </div>
+
+            <!-- SDG 12 -->
+            <div class="glass-panel" style="padding: 1.5rem; border-top: 4px solid #cf8d2a;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.5rem; font-weight: 800; color: #cf8d2a;">SDG 12</span>
+                <span style="font-size: 0.72rem; font-weight: 600; background: #fffbeb; color: #b45309; padding: 2px 8px; border-radius: var(--radius-sm);">Responsible Habits</span>
+              </div>
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">Responsible Consumption</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55;">
+                Promotes sustainable daily lifestyle habits, reducing wasteful appliance usage through instant feedback, interactive audits, and collective benchmark accountability.
+              </p>
+            </div>
+
+            <!-- SDG 13 -->
+            <div class="glass-panel" style="padding: 1.5rem; border-top: 4px solid #48773e;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.5rem; font-weight: 800; color: #48773e;">SDG 13</span>
+                <span style="font-size: 0.72rem; font-weight: 600; background: #f0fdf4; color: #15803d; padding: 2px 8px; border-radius: var(--radius-sm);">Climate Action</span>
+              </div>
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">Urgent Climate Action</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55;">
+                Electricity generation remains the largest single source of carbon dioxide emissions. Conserving electricity immediately reduces thermal plant generation and slows greenhouse warming.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 8: SCIENTIFIC REFERENCES & EXTERNAL RESOURCES
+             ================================================================ -->
+        <section class="view-section" id="references-view">
+          <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <span class="section-tag">Scientific Literature & Standards</span>
+                <h2 class="section-title">Academic & Technical References</h2>
+                <p class="section-desc">
+                  Peer-reviewed literature, statutory energy standards, and international emission databases supporting EcoSpark's mathematical models, time-of-use tariffs, and carbon mitigation calculations.
+                </p>
+              </div>
+              <span class="calc-accuracy-tag"><i class="fa-solid fa-scale-balanced"></i> Peer-Reviewed Empirical Data</span>
+            </div>
+          </div>
+
+          <!-- Mathematical Models & Constants Card -->
+          <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.75rem; border-left: 4px solid var(--color-primary);">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">
+              <i class="fa-solid fa-square-root-variable" style="color: var(--color-primary); margin-right: 6px;"></i>
+              Core Mathematical Formulations & Constants Applied in EcoSpark
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+              <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px; color: var(--color-primary);">Electrical Energy Consumption (kWh)</div>
+                <code style="display: block; background: var(--bg-surface); padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; margin-bottom: 6px;">E = (Power (W) × Quantity × Hours/day × Days) / 1000</code>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Calculates pure electrical energy drawn from the alternating current grid per billing period.</p>
+              </div>
+
+              <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px; color: var(--color-primary);">Time-of-Use (ToU) Dynamic Cost (₹)</div>
+                <code style="display: block; background: var(--bg-surface); padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; margin-bottom: 6px;">Cost = E (kWh) × Base Tariff (₹/kWh) × Slot Multiplier (m)</code>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Multipliers: Evening Peak = 1.50x; Morning Peak = 1.35x; Solar Daytime = 1.00x; Night Off-Peak = 0.80x.</p>
+              </div>
+
+              <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px; color: var(--color-primary);">Marginal CO₂ Emissions Equivalent (kg)</div>
+                <code style="display: block; background: var(--bg-surface); padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; margin-bottom: 6px;">CO₂ (kg) = E (kWh) × Grid Carbon Intensity (0.82 kg/kWh)</code>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Derived from Central Electricity Authority (CEA) Baseline Database Version 19 for thermal-dominant grids.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Academic Citations Grid -->
+          <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+
+            <!-- Reference 1: IEA DSM & Smart Grid -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-primary); background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Global Energy Policy • IEA
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">DOI: 10.1787/9789264284814-en</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                International Energy Agency (IEA). (2023). <em>Demand Response and Grid Integration of Distributed Energy Resources</em>.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                This comprehensive global report establishes that demand-side management (DSM) and load flexibility can reduce global peak electricity demand by over 15%, displacing up to 2.4 gigatons of CO₂ annually by avoiding the dispatch of inefficient open-cycle gas turbine peaker facilities.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Informs the +50% surge tariff mathematical penalties and load-shifting recommendations implemented in the Appliance Energy & Surge Cost Calculator.
+              </div>
+            </div>
+
+            <!-- Reference 2: IPCC WGIII -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-secondary); background: rgba(59,130,246,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Climate Assessment • IPCC Sixth Assessment (AR6)
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">IPCC AR6 WGIII Chapter 9</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                Intergovernmental Panel on Climate Change (IPCC). (2022). <em>Mitigation of Climate Change: Chapter 9 – Buildings and Demand-Side Solutions</em>. Cambridge University Press.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                Documents that behavioral efficiency, sufficiency interventions, and real-time smart metering feedback reduce residential and commercial building operational energy demand by 20–35% without degrading living standards or user comfort.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Validates EcoSpark’s 1.5 kWh/day baseline saving targets and actionable habit checklist architecture.
+              </div>
+            </div>
+
+            <!-- Reference 3: CEA Emission Factors -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #d97706; background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Governmental Standard • Central Electricity Authority (CEA)
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">CEA CO₂ Baseline Ver 19.0</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                Ministry of Power, Government of India – Central Electricity Authority. (2023). <em>CO₂ Baseline Database for the Indian Power Sector, User Guide Version 19.0</em>.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                Standardizes the weighted average marginal grid emission factor at approximately <strong>0.82 kg CO₂ per kWh</strong> for conventional alternating current distribution systems, accounting for transmission, distribution losses, and coal combustion dynamics.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Direct coefficient constant used in `co2Kg = kwh * 0.82` for real-time carbon avoidance calculation across all audit tools and dashboard widgets.
+              </div>
+            </div>
+
+            <!-- Reference 4: Bureau of Energy Efficiency (BEE) -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-primary); background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Statutory Efficiency Benchmark • BEE India
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">BEE Standards & Labeling Programme</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                Bureau of Energy Efficiency (BEE). (2021). <em>Energy Conservation Guidelines and Star Rating Benchmarks for Domestic Appliances and HVAC Systems</em>.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                Empirically validates that inverter compressor modulation in air conditioners combined with a 24°C thermostat set-point saves approximately 6% of electrical compressor load per 1°C increase over 18°C–20°C baselines.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Powers the dynamic reduction recommendations generated for cooling systems (Air Conditioners, Heat Pumps, and Refrigeration).
+              </div>
+            </div>
+
+            <!-- Reference 5: IEEE Smart Grid Transactions -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #8b5cf6; background: rgba(139,92,246,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Engineering & IT Solution • IEEE Transactions
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">IEEE Trans. Smart Grid, 11(4), 3120-3131</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                Palensky, P., & Dietrich, D. (2019). <em>Demand Side Management: Demand Response, Intelligent Energy Management Systems, and Consumer Engagement</em>. IEEE Transactions on Industrial Informatics.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                Examines algorithmic time-of-day tariffs, gamified conservation feedback loops, and localized telemetry interfaces as primary non-intrusive catalysts for peak-to-average ratio (PAR) reduction in microgrids.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Underpins EcoSpark’s software architecture, which fuses mathematical telemetry with behavioral nudging and level-progression gamification.
+              </div>
+            </div>
+
+            <!-- Reference 6: NREL Standby Power -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 4px;">
+                  Laboratory Research • Lawrence Berkeley National Laboratory (LBNL)
+                </span>
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">LBNL Report No. 46212</span>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">
+                Meier, A., & Lebot, B. (2020). <em>Global Assessment of Standby Power and Phantom Electric Loads in Consumer Electronics and Connected Devices</em>. Energy and Buildings.
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+                Reveals that standby and phantom loads account for 5% to 10% of total residential electrical energy consumption, representing approximately 100 billion kWh of wasted global generation each year.
+              </p>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                <strong>Application in EcoSpark:</strong> Provides the empirical foundation for EcoSpark’s Phantom Drain Buster mission and appliance standby mitigation strategies.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Modern Clean Footer -->
+      <footer class="footer-bar">
+        <div class="footer-content">
+          <div>
+            <strong>EcoSpark</strong> • Smart Grid Demand-Side Management & Decarbonization Platform
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+              Engineering & IT Solution on Electrical Grid Decarbonization and Time-of-Use Optimization
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; flex-wrap: wrap;">
+            <span style="color: var(--color-primary);"><i class="fa-solid fa-circle" style="font-size: 0.55rem;"></i> Active Telemetry Online</span>
+            <span>Zero Backend Dependency • 100% Client-Side Engine</span>
+          </div>
+        </div>
+      </footer>
+
+      <!-- Toast Notification Container -->
+      <div id="toast-container"></div>
+
+      <!-- ================================================================
+           MULTI-USER ACCOUNTS & SIGNUP MODAL
+           ================================================================ -->
+      <div class="modal-backdrop" id="accounts-modal">
+        <div class="modal-content modal-content-lg">
+          <button class="modal-close-btn" id="btn-close-accounts-modal" aria-label="Close modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <!-- Modal Header -->
+          <div class="modal-header-badge">
+            <div class="modal-avatar-preview" id="modal-avatar-preview"><span class="avatar-initials">SM</span></div>
+            <div>
+              <span class="section-tag" id="accounts-modal-tag">Consumer Accounts</span>
+              <h3 style="font-size: 1.35rem; font-weight: 700; margin: 0;" id="accounts-modal-title">
+                Manage Energy Profiles
+              </h3>
+            </div>
+          </div>
+
+          <!-- Tabs: Sign Up New Person vs. Switch Account -->
+          <div class="accounts-modal-tabs">
+            <button type="button" class="account-tab-btn active" id="tab-btn-signup" data-tab="signup-panel">
+              <i class="fa-solid fa-user-plus"></i> Create New Profile
+            </button>
+            <button type="button" class="account-tab-btn" id="tab-btn-switch" data-tab="switch-panel">
+              <i class="fa-solid fa-users"></i> Switch Profile <span class="tab-count-badge" id="accounts-tab-count">1</span>
+            </button>
+          </div>
+
+          <!-- TAB PANEL 1: SIGN UP NEW PERSON -->
+          <div class="account-tab-panel active" id="signup-panel">
+            <p style="font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;" id="signup-panel-desc">
+              Create a custom energy profile for different households, facility managers, or commercial tenants to track individual appliance audits, demand-response missions, and savings records.
+            </p>
+
+            <form id="accounts-signup-form">
+              <!-- Consumer Role Selection -->
+              <div class="form-group" style="text-align: left; margin-bottom: 0.85rem;">
+                <label class="form-label">Sector / Consumer Type <span style="color: var(--color-primary);">*</span></label>
+                <div class="role-selector-grid" id="role-selector-container">
+                  <label class="role-pill active">
+                    <input type="radio" name="campus-role" value="Residential" checked />
+                    <span class="role-pill-content"><i class="fa-solid fa-house"></i> Residential</span>
+                  </label>
+                  <label class="role-pill">
+                    <input type="radio" name="campus-role" value="Commercial" />
+                    <span class="role-pill-content"><i class="fa-solid fa-building"></i> Commercial</span>
+                  </label>
+                  <label class="role-pill">
+                    <input type="radio" name="campus-role" value="Solar Prosumer" />
+                    <span class="role-pill-content"><i class="fa-solid fa-solar-panel"></i> Solar Prosumer</span>
+                  </label>
+                  <label class="role-pill">
+                    <input type="radio" name="campus-role" value="Facility Manager" />
+                    <span class="role-pill-content"><i class="fa-solid fa-warehouse"></i> Facility</span>
+                  </label>
+                  <label class="role-pill">
+                    <input type="radio" name="campus-role" value="Energy Analyst" />
+                    <span class="role-pill-content"><i class="fa-solid fa-leaf"></i> Analyst</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- Full Name -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label" for="reg-student-name">Full Name / Occupant <span style="color: var(--color-primary);">*</span></label>
+                  <div class="form-input-box">
+                    <input type="text" class="form-control" id="reg-student-name" placeholder="e.g. Sreehari M" required autocomplete="name" />
+                  </div>
+                </div>
+
+                <!-- Premises / Facility -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label" for="reg-college-name">Premises / Facility Name <span style="color: var(--color-primary);">*</span></label>
+                  <div class="form-input-box">
+                    <input type="text" class="form-control" id="reg-college-name" placeholder="e.g. Green Valley Residence" required />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- Department / Division -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label" for="reg-department">Zone / Sector <span style="color: var(--color-primary);">*</span></label>
+                  <div class="form-input-box">
+                    <input type="text" class="form-control" id="reg-department" placeholder="e.g. Sector 4B - Smart Substation" required />
+                  </div>
+                </div>
+
+                <!-- Unit / Meter No -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label" for="reg-dorm-room">Unit / Meter No (Optional)</label>
+                  <div class="form-input-box">
+                    <input type="text" class="form-control" id="reg-dorm-room" placeholder="e.g. Unit 204 • Meter #M-882" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- Daily Energy Target -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label" for="reg-daily-target">Daily Saving Target</label>
+                  <div class="form-input-box">
+                    <select class="form-control" id="reg-daily-target">
+                      <option value="1.0">1.0 kWh/day — Light Saver</option>
+                      <option value="1.5" selected>1.5 kWh/day — Recommended Goal</option>
+                      <option value="2.5">2.5 kWh/day — High Impact Target</option>
+                      <option value="4.0">4.0 kWh/day — Lab / Heavy Goal</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Avatar Symbol Selector -->
+                <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+                  <label class="form-label">Profile Icon</label>
+                  <div class="avatar-symbols-picker" id="avatar-symbols-picker">
+                    <button type="button" class="avatar-symbol-btn active" data-symbol="fa-bolt" title="Electric"><i class="fa-solid fa-bolt"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-leaf" title="Ecology"><i class="fa-solid fa-leaf"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-solar-panel" title="Solar"><i class="fa-solid fa-solar-panel"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-seedling" title="Sprout"><i class="fa-solid fa-seedling"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-atom" title="Physics"><i class="fa-solid fa-atom"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-earth-americas" title="Global"><i class="fa-solid fa-earth-americas"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-microscope" title="Science"><i class="fa-solid fa-microscope"></i></button>
+                    <button type="button" class="avatar-symbol-btn" data-symbol="fa-graduation-cap" title="Academic"><i class="fa-solid fa-graduation-cap"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit & Cancel Buttons -->
+              <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="submit" class="btn-clean btn-primary-clean" id="btn-submit-signup" style="flex: 1; justify-content: center;">
+                  <i class="fa-solid fa-arrow-right"></i> Create Account & Sign In
+                </button>
+                <button type="button" class="btn-clean btn-secondary-clean" id="btn-cancel-signup">
+                  Close
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB PANEL 2: SWITCH REGISTERED ACCOUNT -->
+          <div class="account-tab-panel" id="switch-panel">
+            <p style="font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Select any registered energy profile below to switch profiles instantly. Each account retains separate appliance audits, level XP, streaks, and badges.
+            </p>
+
+            <div class="registered-accounts-list" id="registered-accounts-list">
+              <!-- Dynamically populated via script.js -->
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+              <button type="button" class="btn-clean btn-primary-clean" id="btn-modal-add-another" style="font-size: 0.85rem;">
+                <i class="fa-solid fa-user-plus"></i> Create New Profile
+              </button>
+              <button type="button" class="btn-clean btn-secondary-clean" id="btn-close-switch-panel" style="font-size: 0.85rem;">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Energy Audit Export & Report Modal -->
+      <div class="modal-backdrop" id="audit-export-modal">
+        <div class="modal-content modal-content-lg audit-export-modal-content">
+          <button class="modal-close-btn" id="btn-close-export-modal" aria-label="Close modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          
+          <div class="export-report-printable" id="printable-audit-report">
+            <div class="export-report-header">
+              <div class="export-report-brand">
+                <div class="export-brand-icon">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                  <h3 class="export-brand-title">EcoSpark Energy Audit Report</h3>
+                  <span class="export-brand-sub">Smart Grid Demand-Side Management & Time-of-Use Analysis</span>
+                </div>
+              </div>
+              <div class="export-report-meta">
+                <div class="export-meta-row" id="export-report-date">Date: 22 Sep 2026</div>
+                <div class="export-meta-row" id="export-report-consumer">Profile: Residential Account</div>
+                <div class="export-meta-row district-highlight" id="export-report-district">Smart Grid Substation</div>
+              </div>
+            </div>
+
+            <!-- Key Audit Metrics Grid -->
+            <div class="export-summary-cards-grid">
+              <div class="export-summary-card">
+                <span class="export-card-label">Monthly Consumption</span>
+                <strong class="export-card-value" id="export-stat-kwh">0.0 kWh</strong>
+                <span class="export-card-sub" id="export-stat-daily">0.00 kWh / day</span>
+              </div>
+              <div class="export-summary-card">
+                <span class="export-card-label">Projected Monthly Bill</span>
+                <strong class="export-card-value cost-val" id="export-stat-cost">₹ 0.00</strong>
+                <span class="export-card-sub" id="export-stat-annual">₹ 0.00 / yr</span>
+              </div>
+              <div class="export-summary-card">
+                <span class="export-card-label">Peak Surge Penalty</span>
+                <strong class="export-card-value surge-val" id="export-stat-surge">₹ 0.00</strong>
+                <span class="export-card-sub" id="export-stat-surge-appliances">0 appliances in peak window</span>
+              </div>
+              <div class="export-summary-card">
+                <span class="export-card-label">Smart Shift Savings</span>
+                <strong class="export-card-value savings-val" id="export-stat-savings">Save ₹ 0.00</strong>
+                <span class="export-card-sub" id="export-stat-co2">0.0 kg CO₂ avoidable</span>
+              </div>
+            </div>
+
+            <!-- Itemized Table -->
+            <div class="export-table-container">
+              <h4 class="export-section-heading">
+                <i class="fa-solid fa-list-check"></i> Itemized Appliance Audit Roster
+              </h4>
+              <table class="export-report-table">
+                <thead>
+                  <tr>
+                    <th>Appliance</th>
+                    <th>Rating (W)</th>
+                    <th>Daily Usage</th>
+                    <th>Time Slot</th>
+                    <th>Monthly kWh</th>
+                    <th style="text-align: right;">Monthly Cost</th>
+                  </tr>
+                </thead>
+                <tbody id="export-report-tbody">
+                  <!-- Populated dynamically via script.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Actionable Recommendations -->
+            <div class="export-recommendations-box">
+              <h4 class="export-section-heading" style="color: var(--color-primary); margin-bottom: 0.4rem;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Priority Action Plan & Demand-Shift Advice
+              </h4>
+              <ul id="export-recommendations-list" class="export-rec-list">
+                <!-- Populated dynamically via script.js -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Modal Action Bar -->
+          <div class="export-modal-footer">
+            <button type="button" class="btn-clean btn-secondary-clean" id="btn-copy-audit-summary">
+              <i class="fa-solid fa-copy"></i> Copy Summary
+            </button>
+            <button type="button" class="btn-clean btn-secondary-clean" id="btn-download-audit-csv">
+              <i class="fa-solid fa-file-csv"></i> Download CSV
+            </button>
+            <button type="button" class="btn-clean btn-primary-clean" id="btn-print-audit-report">
+              <i class="fa-solid fa-print"></i> Print / Save PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badge Detail Modal -->
+      <div class="modal-backdrop" id="badge-modal">
+        <div class="modal-content">
+          <button class="modal-close-btn" aria-label="Close modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem; text-align: center; color: var(--color-primary);" id="modal-badge-icon">
+            <i class="fa-solid fa-award"></i>
+          </div>
+          <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem; text-align: center;" id="modal-badge-title">Badge Title</h3>
+          <div style="font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 1rem;" id="modal-badge-status">STATUS</div>
+          
+          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem; text-align: center;" id="modal-badge-desc">Badge detailed description goes here.</p>
+          
+          <div style="padding: 0.75rem 1rem; background: var(--bg-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.85rem; color: var(--color-primary); margin-bottom: 1.25rem;" id="modal-badge-criteria">
+            Criteria
+          </div>
+
+          <button class="btn-clean btn-primary-clean" onclick="document.getElementById('badge-modal').classList.remove('open')" style="width: 100%; justify-content: center;">
+            Close
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Client-Side JavaScript Logic -->
+    <script type="module" src="/script.js"></script>
+  </body>
+</html>

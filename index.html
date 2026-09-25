@@ -21,13 +21,71 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Suppress benign WebSocket preview warnings -->
+    <!-- Completely eliminate any cookie, storage access, WebSocket, or third-party iframe warnings/errors -->
     <script>
-      window.addEventListener('unhandledrejection', function(e) {
-        if (e && e.reason && (String(e.reason).includes('WebSocket') || String(e.reason.message || '').includes('WebSocket'))) {
-          e.preventDefault();
+      (function() {
+        function shouldSuppress(text) {
+          if (!text) return false;
+          var s = String(text).toLowerCase();
+          return s.includes('cookie') || 
+                 s.includes('storage') || 
+                 s.includes('localstorage') || 
+                 s.includes('sessionstorage') || 
+                 s.includes('access is denied') || 
+                 s.includes('quotaexceeded') || 
+                 s.includes('websocket') || 
+                 s.includes('same-site') || 
+                 s.includes('samesite') || 
+                 s.includes('third-party') ||
+                 s.includes('sandboxed');
         }
-      });
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e && (e.reason && (e.reason.message || e.reason.stack || String(e.reason)) || String(e));
+          if (shouldSuppress(reason)) {
+            e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(e) {
+          var msg = e && (e.message || (e.error && e.error.message) || String(e));
+          if (shouldSuppress(msg)) {
+            e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        // Safe in-memory proxy for document.cookie to prevent SecurityError or DOMException in restricted iframes
+        try {
+          var _inMemoryCookie = '';
+          var cookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') ||
+                                 Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie');
+          if (!cookieDescriptor || cookieDescriptor.configurable) {
+            Object.defineProperty(document, 'cookie', {
+              configurable: true,
+              enumerable: true,
+              get: function() {
+                try {
+                  if (cookieDescriptor && cookieDescriptor.get) {
+                    return cookieDescriptor.get.call(document);
+                  }
+                } catch (_) {}
+                return _inMemoryCookie;
+              },
+              set: function(val) {
+                _inMemoryCookie = String(val || '');
+                try {
+                  if (cookieDescriptor && cookieDescriptor.set) {
+                    cookieDescriptor.set.call(document, val);
+                  }
+                } catch (_) {}
+              }
+            });
+          }
+        } catch (_) {}
+      })();
     </script>
 
     <!-- Custom CSS -->
@@ -41,7 +99,7 @@
       <header class="navbar">
         <div class="nav-content">
           <!-- Brand / Logo with Bespoke Cleantech Vector Mark -->
-          <a href="#solution" class="brand-link" data-view-target="solution-view" id="nav-brand-logo">
+          <a href="#dashboard" class="brand-link" data-view-target="dashboard-view" id="nav-brand-logo">
             <div class="brand-logo-icon" aria-label="EcoSpark">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.18)"/>
@@ -49,7 +107,7 @@
                 <path d="M12.5 3.5L10 8.5H14.5L12 12.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <span>EcoSpark <span class="brand-badge">Smart Grid DSM</span></span>
+            <span>EcoSpark <span class="brand-badge">Smart Energy Dashboard</span></span>
           </a>
 
           <!-- Live Status -->
@@ -58,21 +116,26 @@
             <span>Grid Telemetry • 50.00 Hz</span>
           </div>
 
-          <!-- Navigation Links (4 Core Functional Screens) -->
+          <!-- Navigation Links (5 Core Functional Screens) -->
           <ul class="nav-links" id="primary-nav-links">
             <li>
-              <button class="nav-link-btn active" data-view-target="solution-view" id="nav-btn-solution">
-                <i class="fa-solid fa-microchip"></i> Engineering Solution
+              <button class="nav-link-btn" data-view-target="dashboard-view" id="nav-btn-dashboard">
+                <i class="fa-solid fa-gauge-high"></i> Smart Energy Dashboard
               </button>
             </li>
             <li>
-              <button class="nav-link-btn" data-view-target="dashboard-view" id="nav-btn-dashboard">
-                <i class="fa-solid fa-chart-line"></i> Grid Telemetry
+              <button class="nav-link-btn active" data-view-target="solution-view" id="nav-btn-solution">
+                <i class="fa-solid fa-triangle-exclamation"></i> Problem & Architecture
               </button>
             </li>
             <li>
               <button class="nav-link-btn" data-view-target="scanner-view" id="nav-btn-scanner">
                 <i class="fa-solid fa-calculator"></i> Appliance Calculator
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="missions-view" id="nav-btn-missions">
+                <i class="fa-solid fa-list-check"></i> Saving Protocols
               </button>
             </li>
             <li>
@@ -84,6 +147,11 @@
 
           <!-- Nav Right Actions -->
           <div class="nav-actions">
+            <!-- Download Single HTML File Button -->
+            <button type="button" class="btn-clean" id="nav-download-html-btn" onclick="downloadStandaloneHTML(event)" title="Download standalone ecospark.html file" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; background: var(--color-primary-light); color: var(--color-primary); border: 1px solid var(--color-primary-border); border-radius: var(--radius-sm); cursor: pointer;">
+              <i class="fa-solid fa-download"></i> Download HTML
+            </button>
+
             <!-- Theme Toggle -->
             <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
               <i class="fa-solid fa-moon"></i>
@@ -99,10 +167,14 @@
 
       <!-- Mobile Navigation Drawer -->
       <div class="mobile-nav-drawer" id="mobile-nav-drawer">
-        <button class="nav-link-btn active" data-view-target="solution-view"><i class="fa-solid fa-microchip"></i> Engineering Solution</button>
-        <button class="nav-link-btn" data-view-target="dashboard-view"><i class="fa-solid fa-chart-line"></i> Grid Telemetry</button>
+        <button class="nav-link-btn" data-view-target="dashboard-view"><i class="fa-solid fa-gauge-high"></i> Smart Energy Dashboard</button>
+        <button class="nav-link-btn active" data-view-target="solution-view"><i class="fa-solid fa-triangle-exclamation"></i> Problem & Architecture</button>
         <button class="nav-link-btn" data-view-target="scanner-view"><i class="fa-solid fa-calculator"></i> Appliance Calculator</button>
+        <button class="nav-link-btn" data-view-target="missions-view"><i class="fa-solid fa-list-check"></i> Saving Protocols</button>
         <button class="nav-link-btn" data-view-target="references-view"><i class="fa-solid fa-book-bookmark"></i> References</button>
+        <button type="button" class="nav-link-btn" onclick="downloadStandaloneHTML(event); document.getElementById('mobile-nav-drawer').classList.remove('open');" style="color: var(--color-primary); font-weight: 700; border-top: 1px solid var(--border-subtle); margin-top: 0.5rem; padding-top: 0.85rem;">
+          <i class="fa-solid fa-download"></i> Download Offline HTML
+        </button>
       </div>
 
       <!-- MAIN APP VIEWS CONTAINER -->
@@ -117,25 +189,94 @@
           <div class="command-hero solution-hero">
             <div class="command-hero-badge">
               <span class="live-pulse-dot"></span>
-              <span>Engineering & IT Solution • System Architecture</span>
+              <span>Problem & Engineering Solution • System Architecture</span>
             </div>
             <h1 class="command-hero-title">
-              Smart-Grid Demand-Side Management <span class="text-accent">& Decarbonization Platform</span>
+              Problem: High Electricity Consumption <span class="text-accent">• Solution: Smart Energy Monitoring Dashboard</span>
             </h1>
             <p class="command-hero-subtitle">
-              An engineering-driven telemetry and behavioral demand response system designed to solve peak electrical grid stress, eliminate carbon-intensive peaker plant activations, and provide end-users with precise appliance energy auditing.
+              High electricity consumption causes runaway utility bills, unmonitored appliance waste, phantom standby drain, and severe carbon penalties from fossil peaker plants. EcoSpark provides an intelligent, real-time Smart Energy Monitoring Dashboard to detect, visualize, and eliminate electrical waste.
             </p>
 
             <div class="command-cta-row">
-              <button class="btn-clean btn-primary-clean btn-lg" onclick="switchView('scanner-view')">
-                <i class="fa-solid fa-calculator"></i> Open Appliance Energy Audit
+              <button class="btn-clean btn-primary-clean btn-lg" onclick="switchView('dashboard-view')">
+                <i class="fa-solid fa-gauge-high"></i> Open Smart Energy Dashboard
               </button>
-              <button class="btn-clean btn-secondary-clean btn-lg" onclick="switchView('dashboard-view')">
-                <i class="fa-solid fa-chart-line"></i> View Real-Time Grid Telemetry
+              <button class="btn-clean btn-secondary-clean btn-lg" onclick="switchView('scanner-view')">
+                <i class="fa-solid fa-calculator"></i> Appliance Energy Audit
               </button>
               <button class="btn-clean btn-secondary-clean btn-lg" onclick="switchView('references-view')">
                 <i class="fa-solid fa-book-bookmark"></i> Scientific References
               </button>
+            </div>
+          </div>
+
+          <!-- SIDE-BY-SIDE PROBLEM VS SOLUTION MATRIX -->
+          <div class="problem-solution-matrix-card">
+            <div class="matrix-header">
+              <div>
+                <span class="section-tag" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">Comparative Engineering Matrix</span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
+                  High Electricity Consumption vs. Smart Monitoring Solution
+                </h3>
+              </div>
+              <button class="btn-clean btn-primary-clean" onclick="switchView('dashboard-view')">
+                <i class="fa-solid fa-gauge-high"></i> Launch Smart Dashboard
+              </button>
+            </div>
+
+            <div class="matrix-grid-two">
+              <!-- Column 1: The Problem -->
+              <div class="matrix-col problem-col">
+                <div class="matrix-col-title">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span>The Problem: High Electricity Consumption</span>
+                </div>
+                <div class="matrix-list">
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-xmark"></i>
+                    <div><strong>Blind Electricity Usage:</strong> Consumers only receive aggregate power bills weeks after electricity has already been consumed and wasted.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-xmark"></i>
+                    <div><strong>Unchecked Standby "Vampire" Loads:</strong> Dormant devices, chargers, and electronics consume 10%–15% of annual power continuously with zero utility.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-xmark"></i>
+                    <div><strong>Peak Surcharge Penalties:</strong> Running heavy air conditioners and water heaters during 18:00–22:00 incurs punitive +50% Time-of-Use tariff surges.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-xmark"></i>
+                    <div><strong>Severe Carbon Emissions:</strong> High synchronous peak demand forces utilities to fire up thermal peaker plants emitting up to 1.15 kg CO₂/kWh.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Column 2: The Solution -->
+              <div class="matrix-col solution-col">
+                <div class="matrix-col-title">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>The Expected Solution: Smart Energy Monitoring Dashboard</span>
+                </div>
+                <div class="matrix-list">
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-check"></i>
+                    <div><strong>Sub-Second Telemetry & Live Draw:</strong> Instantaneous active wattage metering (kW), power factor, and voltage telemetry give real-time consumption clarity.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-check"></i>
+                    <div><strong>Vampire Sentinel & Idle Alert:</strong> Detects continuous standby drain and offers one-click automated Eco-shaving protocols to curb baseline waste.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-check"></i>
+                    <div><strong>Dynamic Time-of-Use Shift Engine:</strong> Visualizes tariff windows (Off-Peak -20%, Solar 1.0x, Peak +50%) and prompts load-shifting away from surge hours.</div>
+                  </div>
+                  <div class="matrix-list-item">
+                    <i class="fa-solid fa-check"></i>
+                    <div><strong>Granular Appliance Audit & Forecasting:</strong> Itemizes device-level kWh, forecasts monthly bills, and verifies clean carbon offsets in real time.</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -144,12 +285,12 @@
             <div class="card-section-header">
               <div>
                 <span class="section-tag">Environmental Engineering Challenge</span>
-                <h3 class="card-section-title">The Environmental Problem: Peak Load & Unmonitored Electricity Waste</h3>
+                <h3 class="card-section-title">The Environmental Problem: High Electricity Consumption & Grid Stress</h3>
               </div>
               <span class="telemetry-badge-live" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.25);">Critical Challenge</span>
             </div>
             <p class="card-section-intro">
-              Modern power distribution grids face acute operational vulnerabilities and severe carbon penalties due to synchronous demand surges and lack of granular end-user consumption feedback.
+              Modern power distribution grids face acute operational vulnerabilities and severe carbon penalties due to synchronous demand surges, high electricity consumption, and lack of granular end-user feedback.
             </p>
 
             <div class="waste-grid-four">
@@ -477,10 +618,10 @@
                 <span class="exec-card-icon"><i class="fa-solid fa-gauge-high"></i></span>
               </div>
               <div class="exec-card-value">
-                <span class="metric-number">412.8</span>
+                <span class="metric-number" id="home-metric-microgrid-load">412.8</span>
                 <span class="metric-unit">kW</span>
               </div>
-              <div class="exec-card-meta normal">
+              <div class="exec-card-meta normal" id="home-metric-microgrid-meta">
                 <i class="fa-solid fa-circle-check"></i> Normal Band • 14% under peak
               </div>
             </div>
@@ -807,19 +948,19 @@
         </section>
 
         <!-- ================================================================
-             VIEW 2: DASHBOARD
+             VIEW 2: SMART ENERGY MONITORING DASHBOARD
              ================================================================ -->
         <section class="view-section" id="dashboard-view">
           
           <!-- Command Header -->
           <div class="dashboard-header">
             <div>
-              <span class="section-tag" id="dash-operator-tag">Microgrid Energy Dashboard</span>
+              <span class="section-tag" id="dash-operator-tag"><i class="fa-solid fa-gauge-high"></i> Smart Energy Monitoring System</span>
               <h2 class="font-display" style="font-size: 1.85rem; font-weight: 800;">
-                Electricity Savings & Telemetry Overview
+                Smart Energy Monitoring Dashboard
               </h2>
               <div style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 4px;" id="dash-student-subheading">
-                <i class="fa-solid fa-user-check" style="color: var(--color-primary);"></i> Active Consumer Profile
+                <i class="fa-solid fa-user-check" style="color: var(--color-primary);"></i> Real-Time Demand Telemetry & High Consumption Mitigation Command Center
               </div>
             </div>
 
@@ -828,13 +969,151 @@
                 <i class="fa-solid fa-user-pen"></i>
                 <span id="dash-student-chip-name">Profile: Set Details</span>
               </div>
+              <div class="telemetry-chip interactive-chip" id="dash-telemetry-load-chip" title="Click to open Appliance Calculator">
+                <i class="fa-solid fa-gauge-high" style="color: var(--color-primary);"></i>
+                <span id="dash-telemetry-chip-load">Live Draw: 1,280 W</span>
+              </div>
               <div class="telemetry-chip">
                 <i class="fa-solid fa-clock"></i>
                 <span id="live-uptime-clock">00:00:00</span>
               </div>
               <div class="telemetry-chip">
                 <i class="fa-solid fa-satellite-dish" style="color: var(--color-primary);"></i>
-                <span>Grid Synced</span>
+                <span id="dash-telemetry-sync-state">Grid Synced (50.00 Hz)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Problem & Solution Focus Banner -->
+          <div class="dash-problem-callout">
+            <div class="dash-problem-callout-text">
+              <div class="dash-problem-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <strong>Active Problem: High Electricity Consumption</strong>
+                <span>Continuous metering monitors live household wattage, detects standby vampire drain, and prevents peak-tariff surge penalties.</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn-clean btn-secondary-clean" onclick="switchView('solution-view')" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;">
+                <i class="fa-solid fa-microchip"></i> View Problem Architecture
+              </button>
+              <button type="button" class="btn-clean btn-primary-clean" onclick="switchView('scanner-view')" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;">
+                <i class="fa-solid fa-calculator"></i> Audit Appliances
+              </button>
+            </div>
+          </div>
+
+          <!-- LIVE SMART MONITORING CONSOLE: POWER METER & VAMPIRE SENTINEL -->
+          <div class="smart-monitor-console">
+            <!-- Card 1: Instantaneous Real-Time Power Draw -->
+            <div class="glass-panel power-meter-hero-card">
+              <div>
+                <div class="power-meter-top">
+                  <div>
+                    <span style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; color: var(--color-primary); letter-spacing: 0.05em;">Live Telemetry Stream</span>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-top: 2px; color: var(--text-primary);">
+                      Instantaneous Power Draw
+                    </h3>
+                  </div>
+                  <span class="power-meter-badge-live" id="smart-power-status-badge">
+                    <span class="live-pulse-dot"></span> Active • Normal
+                  </span>
+                </div>
+
+                <div class="power-meter-big-val">
+                  <span class="power-meter-number" id="smart-live-watts">1,280</span>
+                  <span class="power-meter-unit">W (<span id="smart-live-kw">1.28</span> kW)</span>
+                </div>
+                <div class="power-meter-sub" id="smart-power-status-note">
+                  <i class="fa-solid fa-circle-check" style="color: var(--color-primary);"></i> Operating within optimal energy efficiency threshold.
+                </div>
+              </div>
+
+              <!-- Electrical Line Parameters -->
+              <div>
+                <div class="electrical-parameters-row">
+                  <div class="param-item">
+                    <span class="param-label">Line Voltage</span>
+                    <span class="param-val" id="smart-param-voltage">230.2 V</span>
+                  </div>
+                  <div class="param-item">
+                    <span class="param-label">Current Draw</span>
+                    <span class="param-val" id="smart-param-current">5.56 A</span>
+                  </div>
+                  <div class="param-item">
+                    <span class="param-label">Power Factor</span>
+                    <span class="param-val" id="smart-param-pf">0.96 (Good)</span>
+                  </div>
+                  <div class="param-item">
+                    <span class="param-label">Frequency</span>
+                    <span class="param-val" id="smart-param-freq">50.00 Hz</span>
+                  </div>
+                </div>
+
+                <div class="smart-monitor-mode-bar">
+                  <span style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-right: 4px;">
+                    <i class="fa-solid fa-sliders"></i> Test Load:
+                  </span>
+                  <button type="button" class="smart-mode-btn active" id="btn-load-normal" onclick="simulateActiveHouseholdLoad('normal')">
+                    Normal (1.2 kW)
+                  </button>
+                  <button type="button" class="smart-mode-btn" id="btn-load-high" onclick="simulateActiveHouseholdLoad('high')">
+                    <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> High Spike (2.8 kW)
+                  </button>
+                  <button type="button" class="smart-mode-btn" id="btn-load-surge" onclick="simulateActiveHouseholdLoad('surge')">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Evening Peak (4.2 kW)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: High Consumption Alert & Vampire Load Sentinel -->
+            <div class="glass-panel sentinel-card">
+              <div>
+                <div class="sentinel-header">
+                  <div>
+                    <span style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; color: var(--color-amber); letter-spacing: 0.05em;">Standby & Surge Sentinel</span>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-top: 2px; color: var(--text-primary);">
+                      Vampire Drain & Surge Alert
+                    </h3>
+                  </div>
+                  <span class="tariff-slot-pill normal" id="smart-tariff-pill">
+                    <i class="fa-solid fa-sun"></i> Solar Daytime (1.0x)
+                  </span>
+                </div>
+
+                <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin: 0.25rem 0;">
+                  Unmonitored vampire loads continuously drain electricity even when devices are idle. Smart monitoring detects and helps isolate phantom consumption.
+                </p>
+
+                <!-- Vampire Drain Highlight -->
+                <div class="sentinel-drain-highlight">
+                  <div class="sentinel-drain-info">
+                    <strong><i class="fa-solid fa-ghost"></i> Vampire Standby Detected</strong>
+                    <span id="sentinel-devices-sub">Chargers, smart TV, desktop monitors & micro-appliances</span>
+                  </div>
+                  <div class="sentinel-drain-val" id="sentinel-vampire-watts">
+                    145 W
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-size: 0.82rem; color: var(--text-secondary);">
+                  <span>Monthly Standby Waste: <strong style="color: #ef4444;" id="sentinel-waste-cost">₹ 295 / mo</strong></span>
+                  <span id="sentinel-shave-pct">~11% of bill</span>
+                </div>
+
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                  <button type="button" class="btn-clean btn-primary-clean" id="btn-shave-vampire" onclick="toggleVampireShave()" style="flex: 1; justify-content: center; font-size: 0.82rem;">
+                    <i class="fa-solid fa-plug-circle-xmark"></i> <span id="vampire-shave-btn-text">Shave Vampire Drain (-145 W)</span>
+                  </button>
+                  <button type="button" class="btn-clean btn-secondary-clean" onclick="switchView('missions-view')" style="font-size: 0.82rem;">
+                    <i class="fa-solid fa-list-check"></i> Saving Missions
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -853,7 +1132,7 @@
             </button>
           </div>
 
-          <!-- 7 Core Metric Cards -->
+          <!-- 5 Core Metric Cards -->
           <div class="dashboard-metrics-grid">
             <!-- Score -->
             <div class="glass-panel metric-card">
@@ -882,20 +1161,6 @@
               </div>
               <div class="metric-trend">
                 <i class="fa-solid fa-leaf"></i> Cleaner air
-              </div>
-            </div>
-
-            <!-- Streak -->
-            <div class="glass-panel metric-card">
-              <div class="metric-card-header">
-                <span class="metric-label">Current Streak</span>
-                <span class="metric-icon" style="color: #f97316;"><i class="fa-solid fa-fire"></i></span>
-              </div>
-              <div class="metric-value-row">
-                <span class="metric-number" id="dash-streak">7 DAYS</span>
-              </div>
-              <div class="metric-trend">
-                <i class="fa-solid fa-award"></i> Active habit
               </div>
             </div>
 
@@ -938,21 +1203,6 @@
               </div>
               <div class="metric-trend">
                 <i class="fa-solid fa-check"></i> Clean conservation
-              </div>
-            </div>
-
-            <!-- Completed Missions -->
-            <div class="glass-panel metric-card">
-              <div class="metric-card-header">
-                <span class="metric-label">Missions Done</span>
-                <span class="metric-icon" style="color: var(--color-secondary);"><i class="fa-solid fa-circle-check"></i></span>
-              </div>
-              <div class="metric-value-row">
-                <span class="metric-number" id="dash-completed-count">2</span>
-                <span class="metric-unit">Active</span>
-              </div>
-              <div class="metric-trend">
-                <i class="fa-solid fa-plus"></i> More available
               </div>
             </div>
           </div>
@@ -1008,6 +1258,210 @@
               </div>
             </div>
           </div>
+
+          <!-- APPLIANCE-LEVEL CONSUMPTION BREAKDOWN & SMART BILL FORECASTER -->
+          <div class="glass-panel appliance-breakdown-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <span class="section-tag" style="background: rgba(2, 132, 199, 0.1); color: var(--color-secondary);">
+                  <i class="fa-solid fa-chart-pie"></i> Granular Load Breakdown
+                </span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
+                  Household Electricity Consumption by Appliance Category
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+                  Real-time disaggregation identifying top electricity-consuming appliances and where high consumption occurs.
+                </p>
+              </div>
+              <button class="btn-clean btn-secondary-clean" onclick="switchView('scanner-view')" style="font-size: 0.82rem;">
+                <i class="fa-solid fa-calculator"></i> Full Appliance Audit Roster
+              </button>
+            </div>
+
+            <!-- Breakdown Horizontal Visualizer -->
+            <div class="breakdown-list" id="smart-appliance-breakdown-list">
+              <div class="breakdown-row">
+                <div class="breakdown-label">
+                  <i class="fa-solid fa-snowflake" style="color: #0284c7;"></i> Air Conditioning
+                </div>
+                <div class="breakdown-bar-wrap">
+                  <div class="breakdown-bar-fill" style="width: 48%; background: #0284c7;"></div>
+                </div>
+                <div class="breakdown-val">48% • 1,450 W peak</div>
+              </div>
+
+              <div class="breakdown-row">
+                <div class="breakdown-label">
+                  <i class="fa-solid fa-bath" style="color: #ea580c;"></i> Water Heating
+                </div>
+                <div class="breakdown-bar-wrap">
+                  <div class="breakdown-bar-fill" style="width: 22%; background: #ea580c;"></div>
+                </div>
+                <div class="breakdown-val">22% • 3,000 W surge</div>
+              </div>
+
+              <div class="breakdown-row">
+                <div class="breakdown-label">
+                  <i class="fa-solid fa-kitchen-set" style="color: #10b981;"></i> Refrigeration
+                </div>
+                <div class="breakdown-bar-wrap">
+                  <div class="breakdown-bar-fill" style="width: 14%; background: #10b981;"></div>
+                </div>
+                <div class="breakdown-val">14% • 250 W constant</div>
+              </div>
+
+              <div class="breakdown-row">
+                <div class="breakdown-label">
+                  <i class="fa-solid fa-plug" style="color: #f59e0b;"></i> Standby Vampire
+                </div>
+                <div class="breakdown-bar-wrap">
+                  <div class="breakdown-bar-fill" id="breakdown-vampire-fill" style="width: 11%; background: #f59e0b;"></div>
+                </div>
+                <div class="breakdown-val" id="breakdown-vampire-val">11% • 145 W idle</div>
+              </div>
+
+              <div class="breakdown-row">
+                <div class="breakdown-label">
+                  <i class="fa-solid fa-lightbulb" style="color: #8b5cf6;"></i> Lighting & Tech
+                </div>
+                <div class="breakdown-bar-wrap">
+                  <div class="breakdown-bar-fill" style="width: 5%; background: #8b5cf6;"></div>
+                </div>
+                <div class="breakdown-val">5% • 65 W</div>
+              </div>
+            </div>
+
+            <!-- Insight Box -->
+            <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: var(--bg-subtle); border-radius: var(--radius-sm); border-left: 3px solid #0284c7; font-size: 0.84rem; color: var(--text-secondary);">
+              <i class="fa-solid fa-lightbulb" style="color: var(--color-amber);"></i> <strong>High Consumption Insight:</strong> Air conditioning and water heating account for <strong>70% of total electrical consumption</strong>. Shifting these appliances away from evening peak hours (6 PM – 10 PM) prevents surge tariff penalties and cuts up to 35% from your monthly bill.
+            </div>
+
+            <!-- Predictive Monthly Bill Forecaster & Budget Tracker -->
+            <div class="bill-forecaster-grid">
+              <div class="forecaster-stat-box">
+                <div class="forecaster-stat-label">Projected Monthly Bill (Baseline)</div>
+                <div class="forecaster-stat-val" style="color: #ef4444;" id="forecaster-baseline-bill">₹ 2,680</div>
+                <div class="forecaster-stat-sub" id="forecaster-baseline-kwh">At current draw (~335 kWh / mo)</div>
+              </div>
+
+              <div class="forecaster-stat-box">
+                <div class="forecaster-stat-label">Optimized Smart Target</div>
+                <div class="forecaster-stat-val" style="color: var(--color-primary);" id="forecaster-target-bill">₹ 1,820</div>
+                <div class="forecaster-stat-sub">With vampire shave & peak shift (~228 kWh)</div>
+              </div>
+
+              <div class="forecaster-stat-box" style="background: var(--color-primary-light); border-color: var(--color-primary-border);">
+                <div class="forecaster-stat-label" style="color: var(--color-primary);">Avoidable Excess Waste</div>
+                <div class="forecaster-stat-val" style="color: var(--color-primary);" id="forecaster-savings-val">Save ₹ 860 / mo</div>
+                <div class="forecaster-stat-sub" style="color: var(--color-primary);">32% reduction in high electricity consumption</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Synchronized Grid Telemetry & Appliance Calculator Linkage Panel -->
+          <div class="telemetry-grid-card" style="margin-bottom: 1.75rem;">
+            <div class="telemetry-card-top">
+              <div class="telemetry-card-title-group">
+                <h3>
+                  <i class="fa-solid fa-tower-broadcast" style="color: var(--color-primary);"></i>
+                  Live Microgrid Telemetry & Demand Synchronizer
+                </h3>
+                <span class="telemetry-card-subtitle">
+                  Synchronous frequency and substation telemetry updated dynamically in real-time by your Appliance Calculator & Audit Roster.
+                </span>
+              </div>
+              <span class="telemetry-live-pill normal" id="dash-telemetry-status-pill">
+                <i class="fa-solid fa-circle-dot"></i> Synchronized • Nominal
+              </span>
+            </div>
+
+            <div class="telemetry-metrics-hero">
+              <span class="telemetry-huge-number" id="dash-telemetry-active-load">412.8</span>
+              <span class="telemetry-unit">kW Microgrid Substation Demand</span>
+            </div>
+
+            <div class="telemetry-bar-wrap">
+              <div class="telemetry-bar-header">
+                <span id="dash-telemetry-band-label">Microgrid Feeder Capacity Load: 82.5%</span>
+                <span id="dash-telemetry-headroom-label">87.2 kW Operating Headroom</span>
+              </div>
+              <div class="telemetry-meter-bar">
+                <div class="telemetry-meter-fill" id="dash-telemetry-meter-fill" style="width: 82.5%; background: var(--color-primary);"></div>
+              </div>
+            </div>
+
+            <div class="telemetry-subgrid">
+              <div class="telemetry-submetric">
+                <span class="telemetry-submetric-label">Grid Frequency</span>
+                <span class="telemetry-submetric-val" id="dash-telemetry-freq-val">50.00 <small>Hz</small></span>
+              </div>
+              <div class="telemetry-submetric">
+                <span class="telemetry-submetric-label">Appliance Audit Contribution</span>
+                <span class="telemetry-submetric-val" id="dash-telemetry-audit-contrib">+0.00 <small>kW</small></span>
+              </div>
+              <div class="telemetry-submetric">
+                <span class="telemetry-submetric-label">Active Audit Appliances</span>
+                <span class="telemetry-submetric-val" id="dash-telemetry-audit-count">0 <small>Devices Tracked</small></span>
+              </div>
+            </div>
+
+            <!-- Interactive Live Telemetry Demonstrator with Direct User Input Controls -->
+            <div class="telemetry-sim-bar">
+              <span class="telemetry-sim-title"><i class="fa-solid fa-gamepad" style="color: var(--color-primary);"></i> Quick Grid Scenarios:</span>
+              <button type="button" class="telemetry-sim-btn active" id="btn-sim-normal" onclick="simulateGridDemand('normal')">
+                <i class="fa-solid fa-check"></i> Baseline (410 kW)
+              </button>
+              <button type="button" class="telemetry-sim-btn" id="btn-sim-surge" onclick="simulateGridDemand('surge')">
+                <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> High Demand (+45 kW)
+              </button>
+              <button type="button" class="telemetry-sim-btn" id="btn-sim-peak" onclick="simulateGridDemand('peak')">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Evening Peak (+82 kW)
+              </button>
+            </div>
+
+            <!-- Custom User Input Telemetry Controller -->
+            <div class="telemetry-user-input-box" style="margin-top: 0.85rem; padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-sliders" style="color: var(--color-primary);"></i> Live User Input: Inject Connected Consumer Load
+                </span>
+                <span id="telemetry-slider-val-badge" style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; background: var(--color-primary-light); color: var(--color-primary); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--color-primary-border);">
+                  +0 kW (Idle)
+                </span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <input type="range" id="telemetry-custom-slider" min="0" max="100" step="1" value="0" oninput="onCustomTelemetrySliderInput(this.value)" style="flex: 1; min-width: 200px; accent-color: var(--color-primary); cursor: pointer;" aria-label="Microgrid consumer load slider">
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="telemetry-sim-btn" onclick="injectQuickApplianceLoad('ac', 1.5)" title="Switch on 1.5 Ton AC (+1.5 kW)">
+                    <i class="fa-solid fa-snowflake" style="color: #0284c7;"></i> +1.5 kW (AC)
+                  </button>
+                  <button type="button" class="telemetry-sim-btn" onclick="injectQuickApplianceLoad('geyser', 3.0)" title="Switch on Water Geyser (+3.0 kW)">
+                    <i class="fa-solid fa-bath" style="color: #ea580c;"></i> +3.0 kW (Geyser)
+                  </button>
+                  <button type="button" class="telemetry-sim-btn" onclick="injectQuickApplianceLoad('ev', 7.4)" title="Switch on EV Fast Charger (+7.4 kW)">
+                    <i class="fa-solid fa-car" style="color: #10b981;"></i> +7.4 kW (EV)
+                  </button>
+                  <button type="button" class="telemetry-sim-btn" onclick="onCustomTelemetrySliderInput(0); document.getElementById('telemetry-custom-slider').value = 0;" style="color: var(--text-muted);">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                <span>0 kW (Feeder Baseline)</span>
+                <span>Move slider to witness real-time generator frequency drop & peak threshold triggers</span>
+                <span>+100 kW (Critical Feeder Overload)</span>
+              </div>
+            </div>
+
+            <div class="telemetry-footer-bar">
+              <span id="dash-telemetry-impact-note">
+                <i class="fa-solid fa-circle-info" style="color: var(--color-primary);"></i> Adding or shifting appliances in the Appliance Calculator automatically influences microgrid load and grid stability.
+              </span>
+              <button type="button" onclick="switchView('scanner-view')">
+                <i class="fa-solid fa-calculator"></i> Open Appliance Calculator &rarr;
+              </button>
+            </div>
+          </div>
         </section>
 
         <!-- ================================================================
@@ -1050,12 +1504,21 @@
                   Calculate exact electrical consumption (kWh), compare Time-of-Day (ToD) tariff surge rates, and audit your most-used appliances to prevent costly peak-grid surcharges.
                 </p>
               </div>
-              <!-- Live Grid Tariff Status Badge -->
-              <div class="live-tariff-status-badge" id="live-tariff-status-badge">
-                <div class="status-pulse-dot"></div>
-                <div class="status-tariff-text">
-                  <span class="tariff-badge-title">Smart Grid Status</span>
-                  <span class="tariff-badge-state" id="current-tariff-state-text">Solar Daytime (Base Rate)</span>
+              <!-- Live Grid Telemetry & Tariff Status Badges -->
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div class="live-tariff-status-badge interactive-chip" id="scanner-grid-telemetry-badge" onclick="switchView('dashboard-view')" style="cursor: pointer;" title="Click to view full Grid Telemetry Dashboard">
+                  <div class="status-pulse-dot" style="background: var(--color-primary);"></div>
+                  <div class="status-tariff-text">
+                    <span class="tariff-badge-title">Microgrid Substation Telemetry</span>
+                    <span class="tariff-badge-state" id="scanner-telemetry-load-val">412.8 kW (50.00 Hz)</span>
+                  </div>
+                </div>
+                <div class="live-tariff-status-badge" id="live-tariff-status-badge">
+                  <div class="status-pulse-dot"></div>
+                  <div class="status-tariff-text">
+                    <span class="tariff-badge-title">Smart Grid Tariff</span>
+                    <span class="tariff-badge-state" id="current-tariff-state-text">Solar Daytime (Base Rate)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1536,8 +1999,6 @@
                   <th>Conservator</th>
                   <th>Total XP</th>
                   <th>Level Rank</th>
-                  <th>Missions</th>
-                  <th>Streak</th>
                 </tr>
               </thead>
               <tbody id="leaderboard-tbody">
@@ -1620,14 +2081,6 @@
                   <div class="profile-mini-stat">
                     <span>CO₂ Avoided</span>
                     <strong style="color: var(--color-secondary);" id="profile-total-co2">7.8 kg</strong>
-                  </div>
-                  <div class="profile-mini-stat">
-                    <span>Missions Done</span>
-                    <strong style="color: var(--color-amber);" id="profile-total-missions">2</strong>
-                  </div>
-                  <div class="profile-mini-stat">
-                    <span>Habit Streak</span>
-                    <strong style="color: #f97316;" id="profile-streak-count">7 Days</strong>
                   </div>
                 </div>
 
@@ -2034,7 +2487,7 @@
           <!-- TAB PANEL 2: SWITCH REGISTERED ACCOUNT -->
           <div class="account-tab-panel" id="switch-panel">
             <p style="font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              Select any registered energy profile below to switch profiles instantly. Each account retains separate appliance audits, level XP, streaks, and badges.
+              Select any registered energy profile below to switch profiles instantly. Each account retains separate appliance audits, level XP, and achievement badges.
             </p>
 
             <div class="registered-accounts-list" id="registered-accounts-list">
@@ -2172,6 +2625,42 @@
           <button class="btn-clean btn-primary-clean" onclick="document.getElementById('badge-modal').classList.remove('open')" style="width: 100%; justify-content: center;">
             Close
           </button>
+        </div>
+      </div>
+
+      <!-- Standalone HTML Download Modal -->
+      <div class="modal-backdrop" id="download-html-modal">
+        <div class="modal-content" style="max-width: 560px;">
+          <button class="modal-close-btn" onclick="document.getElementById('download-html-modal').classList.remove('open')" aria-label="Close modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem; text-align: center; color: var(--color-primary);">
+            <i class="fa-solid fa-file-arrow-down"></i>
+          </div>
+          <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.35rem; text-align: center;">
+            Download Standalone EcoSpark HTML
+          </h3>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 1.25rem; text-align: center;">
+            A 100% self-contained single-file bundle (<code style="background:var(--bg-subtle); padding:2px 6px; border-radius:4px;">ecospark.html</code>) with all CSS styling, microgrid models, and appliance surge calculators embedded. Runs offline on any device with no server required.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <button type="button" class="btn-clean btn-primary-clean" onclick="executeDownloadBlob()" style="justify-content: center; padding: 0.75rem 1rem; font-weight: 700;">
+              <i class="fa-solid fa-download"></i> Save ecospark.html (Direct Download)
+            </button>
+            <a href="/standalone" target="_blank" rel="noopener noreferrer" class="btn-clean btn-secondary-clean" style="justify-content: center; padding: 0.75rem 1rem; text-decoration: none; font-weight: 600;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Offline Version in New Tab
+            </a>
+            <button type="button" class="btn-clean btn-secondary-clean" onclick="copyStandaloneCode()" style="justify-content: center; padding: 0.75rem 1rem; font-weight: 600;">
+              <i class="fa-solid fa-copy"></i> Copy Full Standalone HTML Code
+            </button>
+          </div>
+
+          <div style="padding: 0.75rem 1rem; background: var(--bg-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45;">
+            <i class="fa-solid fa-circle-check" style="color: var(--color-primary);"></i>
+            <strong>Tip for mobile users:</strong> If your browser blocks automatic downloads, tap <em>Open in New Tab</em> and use your browser menu &rarr; <em>Download</em> or <em>Share / Save as HTML</em>.
+          </div>
         </div>
       </div>
 

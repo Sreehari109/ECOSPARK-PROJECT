@@ -1,14 +1,25 @@
 import "dotenv/config";
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
+
+  // Allow cross-origin embedding without credentials or cookies
+  app.use((_req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "false");
+    res.removeHeader("Set-Cookie");
+    next();
+  });
 
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
@@ -146,6 +157,55 @@ Provide 3 concise, highly actionable bullet points on how they can shift loads t
       offpeakCost,
       potentialSavings
     });
+  });
+
+  function getBundledHtml(): string {
+    const htmlPath = path.join(process.cwd(), "index.html");
+    const cssPath = path.join(process.cwd(), "style.css");
+    const jsPath = path.join(process.cwd(), "script.js");
+    const fallbackPath = path.join(process.cwd(), "ecospark-standalone.html");
+
+    try {
+      let html = fs.readFileSync(htmlPath, "utf8");
+      const css = fs.readFileSync(cssPath, "utf8");
+      const js = fs.readFileSync(jsPath, "utf8");
+
+      const cssRegex = /<link[^>]*href=["'][^"']*style\.css["'][^>]*\/?>/i;
+      const jsRegex = /<script[^>]*src=["'][^"']*script\.js["'][^>]*><\/script>/i;
+
+      html = html.replace(cssRegex, `<style>\n${css}\n</style>`);
+      html = html.replace(jsRegex, `<script>\n${js}\n</script>`);
+      return html;
+    } catch {
+      if (fs.existsSync(fallbackPath)) {
+        return fs.readFileSync(fallbackPath, "utf8");
+      }
+      return fs.readFileSync(htmlPath, "utf8");
+    }
+  }
+
+  // Serve the single standalone HTML file directly for download or direct preview
+  app.get("/download-html", (_req, res) => {
+    try {
+      const html = getBundledHtml();
+      res.setHeader("Content-Disposition", 'attachment; filename="ecospark.html"');
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch {
+      const fallbackPath = path.join(process.cwd(), "ecospark-standalone.html");
+      res.download(fallbackPath, "ecospark.html");
+    }
+  });
+
+  app.get("/standalone", (_req, res) => {
+    try {
+      const html = getBundledHtml();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch {
+      const fallbackPath = path.join(process.cwd(), "ecospark-standalone.html");
+      res.sendFile(fallbackPath);
+    }
   });
 
   // Vite middleware for development

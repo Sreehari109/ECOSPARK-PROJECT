@@ -4,11 +4,44 @@
  */
 
 // =============================================================================
-// 1. MULTI-USER DATA STATE & LOCALSTORAGE PERSISTENCE
+// 1. MULTI-USER DATA STATE & BULLETPROOF STORAGE (NO COOKIE / STORAGE ERRORS)
 // =============================================================================
 const STORAGE_KEY_USERS = 'ecospark_app_users_v6';
 const STORAGE_KEY_ACTIVE_USER = 'ecospark_active_user_id_v6';
 const LEGACY_STORAGE_KEY = 'ecospark_user_state_v6';
+
+// Completely safe storage abstraction with in-memory fallback.
+// In sandboxed iframes and browsers with third-party cookie restrictions,
+// direct localStorage / cookie access throws DOMException: Access is denied.
+// safeStorage completely eliminates any cookie or storage exceptions.
+const _inMemoryStorage = {};
+const safeStorage = {
+  getItem(key) {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        const val = window.localStorage.getItem(key);
+        if (val !== null) return val;
+      }
+    } catch (_) {}
+    return _inMemoryStorage[key] !== undefined ? _inMemoryStorage[key] : null;
+  },
+  setItem(key, value) {
+    _inMemoryStorage[key] = String(value);
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (_) {}
+  },
+  removeItem(key) {
+    delete _inMemoryStorage[key];
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (_) {}
+  }
+};
 
 function createDefaultUser(overrides = {}) {
   const id = overrides.id || ('user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6));
@@ -43,7 +76,7 @@ let appState = getActiveUser();
 
 function loadAllUsers() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_USERS);
+    const saved = safeStorage.getItem(STORAGE_KEY_USERS);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -61,9 +94,7 @@ function loadAllUsers() {
         }
       }
     }
-  } catch (err) {
-    console.warn('Error loading users from localStorage:', err);
-  }
+  } catch (_) {}
 
   // Fresh initial user profile - no fake demo accounts
   const initialUser = createDefaultUser({
@@ -88,19 +119,19 @@ function loadAllUsers() {
 
   const defaultList = [initialUser];
   try {
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(defaultList));
-    localStorage.setItem(STORAGE_KEY_ACTIVE_USER, initialUser.id);
-  } catch (e) {}
+    safeStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(defaultList));
+    safeStorage.setItem(STORAGE_KEY_ACTIVE_USER, initialUser.id);
+  } catch (_) {}
   return defaultList;
 }
 
 function loadActiveUserId() {
   try {
-    const active = localStorage.getItem(STORAGE_KEY_ACTIVE_USER);
+    const active = safeStorage.getItem(STORAGE_KEY_ACTIVE_USER);
     if (active && campusUsers.some(u => u.id === active)) {
       return active;
     }
-  } catch (e) {}
+  } catch (_) {}
   return campusUsers[0] ? campusUsers[0].id : 'default';
 }
 
@@ -117,12 +148,10 @@ function saveState() {
     } else {
       campusUsers.push({ ...appState });
     }
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(campusUsers));
-    localStorage.setItem(STORAGE_KEY_ACTIVE_USER, activeUserId);
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(appState));
-  } catch (err) {
-    console.warn('Failed to save multi-user state:', err);
-  }
+    safeStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(campusUsers));
+    safeStorage.setItem(STORAGE_KEY_ACTIVE_USER, activeUserId);
+    safeStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(appState));
+  } catch (_) {}
 }
 
 function switchActiveUser(userId) {
@@ -840,18 +869,277 @@ window.selectArchStage = selectArchStage;
 // Live Status, Frequency & Clock
 let liveGridFreq = 50.00;
 let liveMicrogridLoad = 412.8;
+let telemetryBaseBaseline = 410.0;
+let customUserInjectedKw = 0.0;
+let lastAuditedKw = 0.0;
+let lastActiveApplianceKw = 0.0;
+let liveIndicatorsTimer = null;
 
-function updateLiveIndicators() {
+function onCustomTelemetrySliderInput(val) {
+  customUserInjectedKw = parseFloat(val) || 0;
+  const badge = document.getElementById('telemetry-slider-val-badge');
+  if (badge) {
+    if (customUserInjectedKw > 0) {
+      badge.textContent = `+${customUserInjectedKw.toFixed(1)} kW Injected`;
+      badge.style.background = customUserInjectedKw > 60 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+      badge.style.color = customUserInjectedKw > 60 ? '#ef4444' : '#d97706';
+      badge.style.borderColor = customUserInjectedKw > 60 ? '#fca5a5' : '#fcd34d';
+    } else {
+      badge.textContent = '+0 kW (Idle)';
+      badge.style.background = 'var(--color-primary-light)';
+      badge.style.color = 'var(--color-primary)';
+      badge.style.borderColor = 'var(--color-primary-border)';
+    }
+  }
+  updateLiveIndicators(true);
+}
+window.onCustomTelemetrySliderInput = onCustomTelemetrySliderInput;
+
+function injectQuickApplianceLoad(name, kw) {
+  const slider = document.getElementById('telemetry-custom-slider');
+  const current = customUserInjectedKw;
+  const next = Math.min(100, Math.round(current + kw));
+  if (slider) slider.value = next;
+  onCustomTelemetrySliderInput(next);
+  showToast(`Switched on ${name.toUpperCase()} (+${kw} kW). Feeder telemetry recalculated!`);
+}
+window.injectQuickApplianceLoad = injectQuickApplianceLoad;
+
+function simulateGridDemand(mode) {
+  const btnNormal = document.getElementById('btn-sim-normal');
+  const btnSurge = document.getElementById('btn-sim-surge');
+  const btnPeak = document.getElementById('btn-sim-peak');
+
+  [btnNormal, btnSurge, btnPeak].forEach(btn => btn?.classList.remove('active'));
+
+  if (mode === 'surge') {
+    telemetryBaseBaseline = 455.0;
+    btnSurge?.classList.add('active');
+    showToast('Scenario: High Demand Grid Injected (+45 kW). Feeder load increasing.');
+  } else if (mode === 'peak') {
+    telemetryBaseBaseline = 492.0;
+    btnPeak?.classList.add('active');
+    showToast('Scenario: Evening Peak Demand Surge Injected (+82 kW). Grid frequency under stress!');
+  } else {
+    telemetryBaseBaseline = 410.0;
+    btnNormal?.classList.add('active');
+    showToast('Scenario: Restored to Nominal Microgrid Baseline (410 kW).');
+  }
+
+  updateLiveIndicators(true);
+}
+window.simulateGridDemand = simulateGridDemand;
+
+// Smart Energy Monitoring Dashboard: Active Household Load Simulator
+let activeHouseholdWatts = 1280;
+let isVampireShaved = false;
+
+function simulateActiveHouseholdLoad(mode) {
+  const btnNormal = document.getElementById('btn-load-normal');
+  const btnHigh = document.getElementById('btn-load-high');
+  const btnSurge = document.getElementById('btn-load-surge');
+  const badgeEl = document.getElementById('smart-power-status-badge');
+  const noteEl = document.getElementById('smart-power-status-note');
+  const wattsEl = document.getElementById('smart-live-watts');
+  const kwEl = document.getElementById('smart-live-kw');
+  const voltEl = document.getElementById('smart-param-voltage');
+  const ampEl = document.getElementById('smart-param-current');
+  const pfEl = document.getElementById('smart-param-pf');
+  const chipLoadEl = document.getElementById('dash-telemetry-chip-load');
+
+  const baseBillEl = document.getElementById('forecaster-baseline-bill');
+  const baseKwhEl = document.getElementById('forecaster-baseline-kwh');
+  const targetBillEl = document.getElementById('forecaster-target-bill');
+  const savingsValEl = document.getElementById('forecaster-savings-val');
+
+  [btnNormal, btnHigh, btnSurge].forEach(b => b?.classList.remove('active'));
+
+  if (mode === 'high') {
+    btnHigh?.classList.add('active');
+    activeHouseholdWatts = isVampireShaved ? 2695 : 2840;
+    if (badgeEl) {
+      badgeEl.className = 'power-meter-badge-live warning';
+      badgeEl.innerHTML = '<span class="live-pulse-dot" style="background:#f59e0b;"></span> High Draw • Feeder Stressed';
+    }
+    if (noteEl) {
+      noteEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> High consumption spike! Running 2 heavy thermal appliances simultaneously.';
+    }
+    if (voltEl) voltEl.textContent = '228.4 V';
+    if (ampEl) ampEl.textContent = '12.45 A';
+    if (pfEl) pfEl.textContent = '0.92 (Fair)';
+    if (baseBillEl) baseBillEl.textContent = '₹ 4,120';
+    if (baseKwhEl) baseKwhEl.textContent = 'At spike draw (~515 kWh / mo)';
+    if (targetBillEl) targetBillEl.textContent = '₹ 2,450';
+    if (savingsValEl) savingsValEl.textContent = 'Save ₹ 1,670 / mo';
+    showToast('High Electricity Consumption Spike simulated: 2.8 kW (AC + Water Geyser active).');
+  } else if (mode === 'surge') {
+    btnSurge?.classList.add('active');
+    activeHouseholdWatts = isVampireShaved ? 4055 : 4200;
+    if (badgeEl) {
+      badgeEl.className = 'power-meter-badge-live warning';
+      badgeEl.innerHTML = '<span class="live-pulse-dot" style="background:#ef4444;"></span> Critical Peak Surge (+50%)';
+    }
+    if (noteEl) {
+      noteEl.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:#ef4444;"></i> Evening Peak Surge tariff active! Shift heavy loads to off-peak to prevent severe penalties.';
+    }
+    if (voltEl) voltEl.textContent = '225.1 V';
+    if (ampEl) ampEl.textContent = '18.65 A';
+    if (pfEl) pfEl.textContent = '0.88 (Sub-optimal)';
+    if (baseBillEl) baseBillEl.textContent = '₹ 5,890';
+    if (baseKwhEl) baseKwhEl.textContent = 'At peak surge draw (~620 kWh / mo)';
+    if (targetBillEl) targetBillEl.textContent = '₹ 2,820';
+    if (savingsValEl) savingsValEl.textContent = 'Save ₹ 3,070 / mo';
+    showToast('Critical Evening Peak Surge simulated: 4.2 kW with +50% Time-of-Use tariff surge!');
+  } else {
+    btnNormal?.classList.add('active');
+    activeHouseholdWatts = isVampireShaved ? 1135 : 1280;
+    if (badgeEl) {
+      badgeEl.className = 'power-meter-badge-live';
+      badgeEl.innerHTML = '<span class="live-pulse-dot"></span> Active • Normal';
+    }
+    if (noteEl) {
+      noteEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--color-primary);"></i> Operating within optimal energy efficiency threshold.';
+    }
+    if (voltEl) voltEl.textContent = '230.2 V';
+    if (ampEl) ampEl.textContent = '5.56 A';
+    if (pfEl) pfEl.textContent = '0.96 (Good)';
+    if (baseBillEl) baseBillEl.textContent = '₹ 2,680';
+    if (baseKwhEl) baseKwhEl.textContent = 'At current draw (~335 kWh / mo)';
+    if (targetBillEl) targetBillEl.textContent = '₹ 1,820';
+    if (savingsValEl) savingsValEl.textContent = 'Save ₹ 860 / mo';
+    showToast('Restored to standard optimal household draw (1.2 kW).');
+  }
+
+  if (wattsEl) wattsEl.textContent = activeHouseholdWatts.toLocaleString();
+  if (kwEl) kwEl.textContent = (activeHouseholdWatts / 1000).toFixed(2);
+  if (chipLoadEl) chipLoadEl.textContent = `Live Draw: ${activeHouseholdWatts} W`;
+}
+window.simulateActiveHouseholdLoad = simulateActiveHouseholdLoad;
+
+function toggleVampireShave() {
+  isVampireShaved = !isVampireShaved;
+  const wattsEl = document.getElementById('sentinel-vampire-watts');
+  const btnText = document.getElementById('vampire-shave-btn-text');
+  const wasteCost = document.getElementById('sentinel-waste-cost');
+  const shavePct = document.getElementById('sentinel-shave-pct');
+  const fillBar = document.getElementById('breakdown-vampire-fill');
+  const fillVal = document.getElementById('breakdown-vampire-val');
+
+  if (isVampireShaved) {
+    activeHouseholdWatts = Math.max(200, activeHouseholdWatts - 145);
+    if (wattsEl) {
+      wattsEl.textContent = '0 W (Shaved)';
+      wattsEl.style.color = 'var(--color-primary)';
+    }
+    if (btnText) btnText.textContent = 'Restore Standby Draw (+145 W)';
+    if (wasteCost) {
+      wasteCost.textContent = '₹ 0.00 / mo';
+      wasteCost.style.color = 'var(--color-primary)';
+    }
+    if (shavePct) shavePct.textContent = '0% waste (Standby Eliminated)';
+    if (fillBar) fillBar.style.width = '0%';
+    if (fillVal) fillVal.textContent = '0% • Shaved';
+
+    // Boost XP and stats
+    appState.energySavedKwh += 0.45;
+    appState.co2SavedKg += 0.37;
+    appState.xp += 25;
+    saveState();
+    renderDashboard();
+
+    showToast('Vampire Standby Draw eliminated! Saving ~105 kWh and ₹295/month (+25 XP earned)!');
+  } else {
+    activeHouseholdWatts += 145;
+    if (wattsEl) {
+      wattsEl.textContent = '145 W';
+      wattsEl.style.color = 'var(--color-amber)';
+    }
+    if (btnText) btnText.textContent = 'Shave Vampire Drain (-145 W)';
+    if (wasteCost) {
+      wasteCost.textContent = '₹ 295 / mo';
+      wasteCost.style.color = '#ef4444';
+    }
+    if (shavePct) shavePct.textContent = '~11% of bill';
+    if (fillBar) fillBar.style.width = '11%';
+    if (fillVal) fillVal.textContent = '11% • 145 W idle';
+
+    showToast('Standby vampire drain restored (145 W idle load).');
+  }
+
+  const liveWatts = document.getElementById('smart-live-watts');
+  const liveKw = document.getElementById('smart-live-kw');
+  const chipLoad = document.getElementById('dash-telemetry-chip-load');
+  if (liveWatts) liveWatts.textContent = activeHouseholdWatts.toLocaleString();
+  if (liveKw) liveKw.textContent = (activeHouseholdWatts / 1000).toFixed(2);
+  if (chipLoad) chipLoad.textContent = `Live Draw: ${activeHouseholdWatts} W`;
+}
+window.toggleVampireShave = toggleVampireShave;
+
+function syncCalculatorToGridTelemetry() {
+  const list = getApplianceAuditList();
+  
+  // Calculate total instantaneous connected load from audit roster
+  let auditTotalWatts = 0;
+  list.forEach(item => {
+    const qty = item.qty || 1;
+    auditTotalWatts += (item.watts || 0) * qty;
+  });
+  lastAuditedKw = auditTotalWatts / 1000;
+
+  // Active appliance load currently in calculator input fields
+  const wattsInput = parseFloat(document.getElementById('scanner-watts')?.value || '0');
+  const qtyInput = parseInt(document.getElementById('scanner-qty')?.value || '1', 10);
+  lastActiveApplianceKw = Math.max(0, (wattsInput * qtyInput) / 1000);
+
+  // Update telemetry load chip in dashboard header
+  const totalTrackedW = Math.round(auditTotalWatts + (lastActiveApplianceKw * 1000));
+  const telemetryChipLoad = document.getElementById('dash-telemetry-chip-load');
+  if (telemetryChipLoad) {
+    if (list.length > 0 || lastActiveApplianceKw > 0) {
+      telemetryChipLoad.textContent = `Calculator Load: ${totalTrackedW > 1000 ? (totalTrackedW / 1000).toFixed(2) + ' kW' : totalTrackedW + ' W'} (${list.length} tracked)`;
+    } else {
+      telemetryChipLoad.textContent = 'Calculator Load: 0 W (Idle)';
+    }
+  }
+
+  // Update telemetry indicator in scanner header
+  const scannerTelemetryLoad = document.getElementById('scanner-telemetry-load-val');
+  if (scannerTelemetryLoad) {
+    scannerTelemetryLoad.textContent = `${liveMicrogridLoad.toFixed(1)} kW (${liveGridFreq.toFixed(2)} Hz)`;
+  }
+
+  // Immediately reflect calculations in live grid indicators
+  updateLiveIndicators(true);
+}
+
+function updateLiveIndicators(animatePulse = false) {
+  if (liveIndicatorsTimer) {
+    clearTimeout(liveIndicatorsTimer);
+    liveIndicatorsTimer = null;
+  }
+
   const clockEl = document.getElementById('live-uptime-clock');
   if (clockEl) {
     const now = new Date();
     clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
-  // Realistic micro-jitter for synchronous 50.00 Hz smart grid telemetry
-  const jitter = (Math.random() - 0.49) * 0.04;
-  liveGridFreq = Math.max(49.96, Math.min(50.04, liveGridFreq + jitter * 0.35));
+  // Calculate dynamic microgrid load linked to appliance calculator, audit roster, and user-injected load
+  // Total load = baseline substation load + custom user slider input + active appliance audit contribution + gentle natural jitter
+  const totalAuditKw = customUserInjectedKw + lastAuditedKw + (lastActiveApplianceKw > 0 ? (lastActiveApplianceKw * 0.3) : 0);
+  const targetSubstationLoad = telemetryBaseBaseline + totalAuditKw;
+  
+  const loadJitter = (Math.random() - 0.5) * 0.8;
+  liveMicrogridLoad = Math.max(390.0, Math.min(520.0, targetSubstationLoad + loadJitter));
 
+  // Dynamic grid frequency: heavy microgrid load exerts slight synchronous drag (down to 49.90 Hz),
+  // while nominal load allows frequency to float near 50.00 - 50.02 Hz
+  const loadStressFactor = (liveMicrogridLoad - 410.0) / 95.0; // positive when overloaded
+  const nominalFreqTarget = 50.00 - (loadStressFactor * 0.06);
+  const freqJitter = (Math.random() - 0.49) * 0.025;
+  liveGridFreq = Math.max(49.88, Math.min(50.12, nominalFreqTarget + freqJitter));
+
+  // System status indicator in sticky navbar
   const statusIndicator = document.getElementById('system-status-indicator');
   if (statusIndicator) {
     const statusText = statusIndicator.querySelector('span:last-child');
@@ -860,15 +1148,113 @@ function updateLiveIndicators() {
     }
   }
 
-  // Microgrid load jitter in executive summary
-  const loadMetricNumber = document.querySelector('.exec-metric-card .metric-number');
-  if (loadMetricNumber) {
-    const loadJitter = (Math.random() - 0.5) * 1.6;
-    liveMicrogridLoad = Math.max(405.0, Math.min(420.0, liveMicrogridLoad + loadJitter * 0.25));
-    loadMetricNumber.textContent = liveMicrogridLoad.toFixed(1);
+  // Grid Synced state in dashboard header
+  const syncStateText = document.getElementById('dash-telemetry-sync-state');
+  if (syncStateText) {
+    syncStateText.textContent = `Grid Synced (${liveGridFreq.toFixed(2)} Hz)`;
   }
 
-  setTimeout(updateLiveIndicators, 2200);
+  // Microgrid load in executive summary
+  const homeLoadEl = document.getElementById('home-metric-microgrid-load');
+  if (homeLoadEl) {
+    homeLoadEl.textContent = liveMicrogridLoad.toFixed(1);
+    if (animatePulse) {
+      homeLoadEl.classList.remove('telemetry-number-pulse');
+      void homeLoadEl.offsetWidth; // trigger reflow
+      homeLoadEl.classList.add('telemetry-number-pulse');
+    }
+  } else {
+    const loadMetricNumber = document.querySelector('.exec-metric-card .metric-number');
+    if (loadMetricNumber) {
+      loadMetricNumber.textContent = liveMicrogridLoad.toFixed(1);
+    }
+  }
+
+  const homeMetaEl = document.getElementById('home-metric-microgrid-meta');
+  if (homeMetaEl) {
+    if (liveMicrogridLoad >= 485) {
+      homeMetaEl.className = 'exec-card-meta critical';
+      homeMetaEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Critical Peak Band • 96% Capacity';
+    } else if (liveMicrogridLoad >= 445) {
+      homeMetaEl.className = 'exec-card-meta warning text-amber';
+      homeMetaEl.innerHTML = '<i class="fa-solid fa-gauge-high"></i> High Demand Band • Feeder Stressed';
+    } else {
+      homeMetaEl.className = 'exec-card-meta normal';
+      homeMetaEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Normal Band • 14% under peak';
+    }
+  }
+
+  // Dashboard Live Telemetry & Demand Synchronizer card
+  const dashActiveLoad = document.getElementById('dash-telemetry-active-load');
+  const dashFreqVal = document.getElementById('dash-telemetry-freq-val');
+  const dashAuditContrib = document.getElementById('dash-telemetry-audit-contrib');
+  const dashAuditCount = document.getElementById('dash-telemetry-audit-count');
+  const dashMeterFill = document.getElementById('dash-telemetry-meter-fill');
+  const dashBandLabel = document.getElementById('dash-telemetry-band-label');
+  const dashHeadroomLabel = document.getElementById('dash-telemetry-headroom-label');
+  const dashStatusPill = document.getElementById('dash-telemetry-status-pill');
+  const dashImpactNote = document.getElementById('dash-telemetry-impact-note');
+
+  if (dashActiveLoad) {
+    dashActiveLoad.textContent = liveMicrogridLoad.toFixed(1);
+    if (animatePulse) {
+      dashActiveLoad.classList.remove('telemetry-number-pulse');
+      void dashActiveLoad.offsetWidth;
+      dashActiveLoad.classList.add('telemetry-number-pulse');
+    }
+  }
+  if (dashFreqVal) dashFreqVal.innerHTML = `${liveGridFreq.toFixed(2)} <small>Hz</small>`;
+  if (dashAuditContrib) dashAuditContrib.innerHTML = `${totalAuditKw >= 0 ? '+' : ''}${totalAuditKw.toFixed(2)} <small>kW</small>`;
+  
+  const list = getApplianceAuditList();
+  if (dashAuditCount) dashAuditCount.innerHTML = `${list.length} <small>Device${list.length === 1 ? '' : 's'} Tracked</small>`;
+
+  // Capacity calculation (500 kW rated substation capacity)
+  const capacityPct = Math.min(100, Math.max(10, (liveMicrogridLoad / 500.0) * 100));
+  const headroomKw = Math.max(0, 500.0 - liveMicrogridLoad);
+
+  if (dashMeterFill) {
+    dashMeterFill.style.width = `${capacityPct.toFixed(1)}%`;
+    if (capacityPct >= 92) {
+      dashMeterFill.style.background = '#ef4444';
+    } else if (capacityPct >= 84) {
+      dashMeterFill.style.background = '#f59e0b';
+    } else {
+      dashMeterFill.style.background = 'var(--color-primary)';
+    }
+  }
+
+  if (dashBandLabel) dashBandLabel.textContent = `Microgrid Feeder Capacity Load: ${capacityPct.toFixed(1)}%`;
+  if (dashHeadroomLabel) dashHeadroomLabel.textContent = `${headroomKw.toFixed(1)} kW Operating Headroom`;
+
+  if (dashStatusPill) {
+    if (capacityPct >= 92) {
+      dashStatusPill.className = 'telemetry-live-pill critical';
+      dashStatusPill.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Peak Surge Band';
+    } else if (capacityPct >= 84) {
+      dashStatusPill.className = 'telemetry-live-pill elevated';
+      dashStatusPill.innerHTML = '<i class="fa-solid fa-gauge-high"></i> High Demand Band';
+    } else {
+      dashStatusPill.className = 'telemetry-live-pill normal';
+      dashStatusPill.innerHTML = '<i class="fa-solid fa-circle-dot"></i> Synchronized • Nominal';
+    }
+  }
+
+  if (dashImpactNote) {
+    if (totalAuditKw > 0) {
+      dashImpactNote.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--color-primary);"></i> Audit Contribution Active: +${totalAuditKw.toFixed(2)} kW dynamically added to feeder telemetry.`;
+    } else {
+      dashImpactNote.innerHTML = `<i class="fa-solid fa-circle-info" style="color: var(--color-primary);"></i> Adding or shifting appliances in the Appliance Calculator automatically influences microgrid load and grid stability.`;
+    }
+  }
+
+  // Update scanner view telemetry badge
+  const scannerTelemetryLoad = document.getElementById('scanner-telemetry-load-val');
+  if (scannerTelemetryLoad) {
+    scannerTelemetryLoad.textContent = `${liveMicrogridLoad.toFixed(1)} kW (${liveGridFreq.toFixed(2)} Hz)`;
+  }
+
+  liveIndicatorsTimer = setTimeout(() => updateLiveIndicators(false), 2000);
 }
 
 // Subtle Particle Canvas
@@ -977,11 +1363,22 @@ function renderDashboard() {
 
   setElementText('dash-today-score', '94');
   setElementText('dash-co2-saved', appState.co2SavedKg.toFixed(1));
-  setElementText('dash-streak', `${appState.streak} DAYS`);
   setElementText('dash-total-xp', `${appState.xp} XP`);
-  setElementText('dash-energy-used', `${appState.energyUsedKwh.toFixed(1)} kWh`);
+
+  let activeEnergyUsed = appState.energyUsedKwh || 0;
+  if (activeEnergyUsed === 0 && Array.isArray(appState.applianceAudit) && appState.applianceAudit.length > 0) {
+    const baseTariff = parseFloat(document.getElementById('scanner-tariff')?.value || '7.5');
+    let totalMonthly = 0;
+    appState.applianceAudit.forEach(item => {
+      const qty = item.qty || 1;
+      const days = item.days || 30;
+      const advice = generateApplianceReductionAdvice(item.name, item.watts, item.hours, item.slot, baseTariff, qty, days);
+      totalMonthly += advice.monthlyKwh;
+    });
+    activeEnergyUsed = totalMonthly;
+  }
+  setElementText('dash-energy-used', `${activeEnergyUsed.toFixed(1)} kWh`);
   setElementText('dash-energy-saved', `${appState.energySavedKwh.toFixed(1)} kWh`);
-  setElementText('dash-completed-count', `${appState.completedMissions.length}`);
   
   const levelNameEl = document.getElementById('dash-current-level-name');
   if (levelNameEl) {
@@ -1015,6 +1412,37 @@ function renderDashboard() {
 
   // Update navigation chips and headers
   updateHeaderUI();
+
+  // Synchronize telemetry with appliance calculator state
+  syncCalculatorToGridTelemetry();
+
+  // Smart Energy Monitoring Dashboard: Live sync of power meter & forecaster
+  const liveWattsEl = document.getElementById('smart-live-watts');
+  const liveKwEl = document.getElementById('smart-live-kw');
+  const chipLoadEl = document.getElementById('dash-telemetry-chip-load');
+  if (liveWattsEl && liveKwEl) {
+    liveWattsEl.textContent = activeHouseholdWatts.toLocaleString();
+    liveKwEl.textContent = (activeHouseholdWatts / 1000).toFixed(2);
+  }
+  if (chipLoadEl) {
+    chipLoadEl.textContent = `Live Draw: ${activeHouseholdWatts} W`;
+  }
+
+  // Update forecaster if audited items exist
+  const baseBillEl = document.getElementById('forecaster-baseline-bill');
+  const baseKwhEl = document.getElementById('forecaster-baseline-kwh');
+  const targetBillEl = document.getElementById('forecaster-target-bill');
+  const savingsValEl = document.getElementById('forecaster-savings-val');
+  if (baseBillEl && activeEnergyUsed > 0) {
+    const baseTariff = parseFloat(document.getElementById('scanner-tariff')?.value || '8.5');
+    const monthlyBill = activeEnergyUsed * baseTariff * 1.15;
+    const targetBill = monthlyBill * 0.68;
+    const savings = monthlyBill - targetBill;
+    baseBillEl.textContent = `₹ ${Math.round(monthlyBill).toLocaleString('en-IN')}`;
+    if (baseKwhEl) baseKwhEl.textContent = `At audited draw (~${Math.round(activeEnergyUsed)} kWh / mo)`;
+    if (targetBillEl) targetBillEl.textContent = `₹ ${Math.round(targetBill).toLocaleString('en-IN')}`;
+    if (savingsValEl) savingsValEl.textContent = `Save ₹ ${Math.round(savings).toLocaleString('en-IN')} / mo`;
+  }
 
   // Lazy init chart
   if (!window.energyChartInstance) {
@@ -1721,6 +2149,15 @@ function initScanner() {
   // Live Grid Clock
   updateLiveGridTariffClock();
 
+  // Wire up interactive telemetry load chip to switch to appliance calculator view
+  const dashLoadChip = document.getElementById('dash-telemetry-load-chip');
+  if (dashLoadChip) {
+    dashLoadChip.onclick = () => {
+      switchView('scanner-view');
+      showToast('Switched to Appliance Energy & Surge Cost Calculator.');
+    };
+  }
+
   // Initial Calculation and Render
   calculateScanner();
   renderApplianceRoster();
@@ -1959,6 +2396,9 @@ function calculateScanner() {
 
   if (tierFill) tierFill.style.width = `${percent}%`;
   if (tierTag) tierTag.textContent = tier;
+
+  // Immediately reflect active appliance load in grid telemetry
+  syncCalculatorToGridTelemetry();
 }
 
 function addToApplianceAudit() {
@@ -2121,6 +2561,8 @@ function renderApplianceRoster() {
 
   // Update Summary Strip
   setElementText('audit-total-kwh', `${totalCumulativeMonthlyKwh.toFixed(1)} kWh`);
+  appState.energyUsedKwh = totalCumulativeMonthlyKwh;
+  setElementText('dash-energy-used', `${totalCumulativeMonthlyKwh.toFixed(1)} kWh`);
   setElementText('audit-daily-average', `${totalCumulativeDailyKwh.toFixed(2)} kWh/day • ${(totalCumulativeDailyKwh * 365).toFixed(0)} kWh/yr`);
   setElementText('audit-total-bill', `₹ ${totalCumulativeBill.toFixed(2)}`);
   setElementText('audit-base-bill-text', `Base: ₹ ${totalBaseCost.toFixed(2)} (Standard Tariff)`);
@@ -2356,6 +2798,9 @@ function renderApplianceRoster() {
     `;
     tbody.appendChild(drawerRow);
   });
+
+  // Keep grid telemetry synchronously updated with active roster appliances
+  syncCalculatorToGridTelemetry();
 }
 
 function clearAuditFilterSearch() {
@@ -2664,7 +3109,7 @@ function renderLeaderboard() {
   if (allUsers.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
           No users registered yet. Click the account button at the top to create your profile.
         </td>
       </tr>
@@ -2695,8 +3140,6 @@ function renderLeaderboard() {
       </td>
       <td><strong style="color: var(--color-primary); font-weight: 700;">${user.xp} XP</strong></td>
       <td><span class="level-indicator">${getCurrentLevel(user.xp).current.title}</span></td>
-      <td>${user.challenges} missions</td>
-      <td><i class="fa-solid fa-fire" style="color: #ea580c; font-size: 0.75rem;"></i> ${user.streak}d</td>
     `;
     tbody.appendChild(row);
   });
@@ -2783,8 +3226,6 @@ function renderProfileAndVault() {
   // Stats Grid in Profile
   setElementText('profile-total-kwh', `${appState.energySavedKwh.toFixed(1)} kWh`);
   setElementText('profile-total-co2', `${appState.co2SavedKg.toFixed(1)} kg`);
-  setElementText('profile-total-missions', `${appState.completedMissions.length}`);
-  setElementText('profile-streak-count', `${appState.streak} Days`);
 
   // Render Badges in Vault
   const vaultGrid = document.getElementById('badges-vault-grid');
@@ -2855,9 +3296,9 @@ function renderProfileAndVault() {
   if (resetBtn) {
     resetBtn.onclick = () => {
       if (confirm('Reset EcoSpark energy profiles to initial baseline?')) {
-        localStorage.removeItem(STORAGE_KEY_USERS);
-        localStorage.removeItem(STORAGE_KEY_ACTIVE_USER);
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        safeStorage.removeItem(STORAGE_KEY_USERS);
+        safeStorage.removeItem(STORAGE_KEY_ACTIVE_USER);
+        safeStorage.removeItem(LEGACY_STORAGE_KEY);
         campusUsers = loadAllUsers();
         activeUserId = campusUsers[0].id;
         appState = campusUsers[0];
@@ -3328,6 +3769,150 @@ function setSimSlot(slot) {
   }
 }
 
+// =============================================================================
+// 14. STANDALONE OFFLINE HTML DOWNLOAD & EXPORT HANDLER
+// =============================================================================
+let cachedStandaloneHtml = null;
+
+async function getStandaloneHtmlContent() {
+  if (cachedStandaloneHtml) return cachedStandaloneHtml;
+  try {
+    const res = await fetch('/standalone', { cache: 'no-cache' });
+    if (res.ok) {
+      cachedStandaloneHtml = await res.text();
+      return cachedStandaloneHtml;
+    }
+  } catch (e) {
+    console.warn('Direct fetch of /standalone failed, generating client-side bundle...', e);
+  }
+
+  // Client-side synthesis fallback
+  try {
+    let css = '';
+    for (const sheet of document.styleSheets) {
+      try {
+        if (sheet.cssRules) {
+          for (const rule of sheet.cssRules) {
+            css += rule.cssText + '\n';
+          }
+        }
+      } catch {
+        // Cross-origin CSS ignored
+      }
+    }
+
+    let fullHtml = document.documentElement.outerHTML;
+    if (css) {
+      fullHtml = fullHtml.replace(/<link[^>]*href=["'][^"']*style\.css["'][^>]*\/?>/i, `<style>\n${css}\n</style>`);
+    }
+    cachedStandaloneHtml = fullHtml;
+    return cachedStandaloneHtml;
+  } catch (err) {
+    console.error('Failed to bundle HTML:', err);
+    return null;
+  }
+}
+
+function triggerDirectBlobDownload(blob, filename = 'ecospark.html') {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {}
+    }, 2500);
+    return true;
+  } catch (e) {
+    console.error('Blob download triggered error:', e);
+    return false;
+  }
+}
+
+async function downloadStandaloneHTML(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  showToast('Packaging complete offline HTML...');
+
+  try {
+    // 1. Fetch from server endpoint
+    const res = await fetch('/download-html', { cache: 'no-cache' });
+    if (res.ok) {
+      const blob = await res.blob();
+      const success = triggerDirectBlobDownload(blob, 'ecospark.html');
+      if (success) {
+        showToast('✓ ecospark.html downloaded! Open it in any browser.');
+        return;
+      }
+    }
+  } catch (fetchErr) {
+    console.warn('Backend download fetch failed, attempting client-side bundle...', fetchErr);
+  }
+
+  // 2. Client-side synthesis fallback
+  const htmlContent = await getStandaloneHtmlContent();
+  if (htmlContent) {
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const success = triggerDirectBlobDownload(blob, 'ecospark.html');
+    if (success) {
+      showToast('✓ ecospark.html downloaded! Open it in any browser.');
+      return;
+    }
+  }
+
+  // 3. Fallback: Open modal so user has options to open or copy code
+  openDownloadModal();
+}
+
+async function executeDownloadBlob() {
+  const modal = document.getElementById('download-html-modal');
+  modal?.classList.remove('open');
+  await downloadStandaloneHTML();
+}
+
+function openDownloadModal() {
+  const modal = document.getElementById('download-html-modal');
+  if (modal) {
+    modal.classList.add('open');
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.classList.remove('open');
+    };
+  }
+}
+
+async function copyStandaloneCode() {
+  showToast('Fetching complete HTML code...');
+  const html = await getStandaloneHtmlContent();
+  if (html) {
+    try {
+      await navigator.clipboard.writeText(html);
+      showToast('Standalone HTML code copied to clipboard!');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = html;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Standalone HTML code copied to clipboard!');
+    }
+  } else {
+    showToast('Could not copy HTML. Please try "Open in New Tab".');
+  }
+}
+
 const escapeHTML = escapeHtml;
 function initConfetti() {}
 function createConfettiBurst() {}
@@ -3336,6 +3921,8 @@ if (typeof window !== 'undefined') {
   window.switchView = switchView;
   window.selectArchStage = selectArchStage;
   window.setSimSlot = setSimSlot;
+  window.simulateActiveHouseholdLoad = simulateActiveHouseholdLoad;
+  window.toggleVampireShave = toggleVampireShave;
   window.escapeHtml = escapeHtml;
   window.escapeHTML = escapeHtml;
   window.removeAuditAppliance = removeAuditAppliance;
@@ -3345,4 +3932,8 @@ if (typeof window !== 'undefined') {
   window.clearAuditFilterSearch = clearAuditFilterSearch;
   window.initConfetti = initConfetti;
   window.createConfettiBurst = createConfettiBurst;
+  window.downloadStandaloneHTML = downloadStandaloneHTML;
+  window.executeDownloadBlob = executeDownloadBlob;
+  window.openDownloadModal = openDownloadModal;
+  window.copyStandaloneCode = copyStandaloneCode;
 }
